@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EduOracleAI",
+  title: "EduGlobizAI",
   description: "AI that Shapes Academic Success",
 };
 
