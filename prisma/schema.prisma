@@ -84,3 +84,18 @@ model ClassRoster {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }
+
+// ------------------------------------------------------------------
+// GAMIFICATION: The Battle Engine Data
+// ------------------------------------------------------------------
+
+model BattleQuestion {
+  id                 String   @id @default(cuid())
+  questionText       String
+  options            String[] // Postgres handles arrays natively!
+  correctAnswerIndex Int
+  category           String   @default("ISRO 'SC' Syllabus") 
+  
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
