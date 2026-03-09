@@ -12,7 +12,7 @@ export const genAI = new GoogleGenerativeAI(apiKey || "");
 // Helper to grab the Flash model pre-configured for strict JSON output
 export const getJsonModel = () => {
   return genAI.getGenerativeModel({
-    model: "gemini-1.5-flash",
+    model: "gemini-2.5-flash", // 🚨 FIXED: Upgraded from the deprecated 1.5 model
     generationConfig: {
       responseMimeType: "application/json",
       temperature: 0.2, // Low temperature for highly deterministic data

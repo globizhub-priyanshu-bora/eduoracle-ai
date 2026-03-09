@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-// Assuming Monowar set up the Prisma singleton here based on the architecture doc
 import prisma from '@/lib/db/prisma'; 
 
 const FALLBACK_RADAR = {
@@ -23,18 +22,22 @@ const genAI = new GoogleGenerativeAI(apiKey);
 
 export async function GET() {
   try {
-    // 1. THE DB CACHE CHECK (Zero-Auth approach for the MVP Demo)
-    // We grab the first ClassRoster we find. 
-    const existingRoster = await prisma.classRoster.findFirst();
-
-    // If the DB has the AI data cached, return it instantly. No Gemini call needed.
-    if (existingRoster && existingRoster.atRiskStudents) {
-      console.log("EduOracle: Serving cached Radar data from Neon DB.");
-      return NextResponse.json(existingRoster.atRiskStudents, { status: 200 });
+    // 1. THE DB CACHE CHECK
+    // Wrapped in a try/catch so if Neon is unreachable, we still run the AI
+    let existingRoster = null;
+    try {
+      existingRoster = await prisma.classRoster.findFirst();
+      
+      if (existingRoster && existingRoster.atRiskStudents) {
+        console.log("EduOracle: Serving cached Radar data from Neon DB.");
+        return NextResponse.json(existingRoster.atRiskStudents, { status: 200 });
+      }
+    } catch (dbCacheErr) {
+      console.warn("EduOracle [DB Warning]: Could not read cache, proceeding to AI generation.");
     }
 
-    // 2. GENERATE NEW DATA IF DB IS EMPTY
-    console.log("EduOracle: No cache found. Generating fresh AI data...");
+    // 2. GENERATE NEW DATA (If cache is empty or DB failed)
+    console.log("EduOracle: Generating fresh AI data...");
     const prompt = `
       You are EduOracle. Generate a cohort analysis for 10 demo students studying for the ISRO Scientist 'SC' (Computer Science) exam.
       Identify exactly 3 "Silent Strugglers" (students with passing grades today who are predicted to fail by finals).
@@ -48,11 +51,10 @@ export async function GET() {
     `;
 
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
-      generationConfig: { responseMimeType: "application/json" },
+      model: "gemini-2.5-flash", // 🚨 FIXED: Upgraded to the active 2.5 model
+      generationConfig: { responseMimeType: "application/json", temperature: 0.2 },
     });
 
-    // We catch the Google 400 Error internally so it resolves to the fallback smoothly
     const geminiPromise = model
       .generateContent(prompt)
       .then((res) => JSON.parse(res.response.text()))
@@ -70,39 +72,8 @@ export async function GET() {
 
     const finalData = await Promise.race([geminiPromise, timeoutPromise]);
 
-    // 3. SAVE THE NEW DATA TO THE DATABASE
-    if (existingRoster) {
-      // Update existing roster with the new JSON blob
-      await prisma.classRoster.update({
-        where: { id: existingRoster.id },
-        data: { atRiskStudents: finalData }
-      });
-    } else {
-      // Demo failsafe: If the DB is completely empty, create the relational chain
-      // so the demo doesn't crash on the next page reload.
-      await prisma.user.create({
-        data: {
-          name: "Demo Educator",
-          role: "TEACHER",
-          teacherProfile: {
-            create: {
-              schoolName: "Girijananda Chowdhury University",
-              classes: {
-                create: {
-                  className: "CS-401 Advanced Operating Systems",
-                  studentCount: 10,
-                  atRiskStudents: finalData
-                }
-              }
-            }
-          }
-        }
-      });
-    }
-
-    return NextResponse.json(finalData, { status: 200 });
-
-    // 4. SAFE DB WRITE 
+    // 3. SAFE DB WRITE 
+    // Only attempt to save if we have a valid DB URL and the data isn't the fallback
     if (process.env.DATABASE_URL && finalData !== FALLBACK_RADAR) {
       try {
         if (existingRoster) {
@@ -111,6 +82,7 @@ export async function GET() {
             data: { atRiskStudents: finalData as any }, 
           });
         } else {
+          // Demo failsafe: Create the relational chain for the next reload
           await prisma.user.create({
             data: {
               name: "Demo Educator",
@@ -130,12 +102,14 @@ export async function GET() {
             },
           });
         }
-      } catch (dbWriteError) {
+      } catch (dbWriteError: any) {
         console.warn("EduOracle [DB]: Could not save AI data to DB, but returning it to UI anyway.", dbWriteError.message);
       }
     }
 
+    // 4. RETURN FINAL DATA TO THE FRONTEND
     return NextResponse.json(finalData, { status: 200 });
+
   } catch (error) {
     console.error("EduOracle [Fatal]: Unexpected Radar Error:", error);
     return NextResponse.json(FALLBACK_RADAR, { status: 200 });
