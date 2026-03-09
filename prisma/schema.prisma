@@ -11,7 +11,7 @@ datasource db {
  
 }
 
-// ------------------------------------------------------------------
+/// ------------------------------------------------------------------
 // CORE IDENTITY (Future-proofed for Auth)
 // ------------------------------------------------------------------
 
@@ -49,8 +49,82 @@ model StudentProfile {
   latestHealthScore Int?     @default(0)
   latestAIInsights  Json?    // Stores the Learning DNA, GPS Route, and Predictions
 
+  // -------------------------------------------------------
+  // 🆕 NEW: Core Student Feature Tracking
+  // -------------------------------------------------------
+  // 1. GPS & Routine State
+  completedGpsTasks String[] @default([]) // Persists checked-off tasks in Academic GPS
+  currentStudyHours Int      @default(3)  // Persists the Digital Twin slider value
+  
+  // 2. Career Engine Targets
+  targetRole        String?  // e.g., "Cloud Solutions Architect"
+  targetIndustry    String?  // e.g., "Enterprise Tech & SaaS"
+
+  // Relations to new features
+  exams           Exam[]         // Link to Predictive Assessment Engine
+  visionQueries   VisionQuery[]  // Link to past AI Doubt Tutor questions
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  @@index([userId]) // Performance optimization for faster UI loading
+}
+
+// ------------------------------------------------------------------
+// 🆕 NEW: Predictive Assessment Engine (Exams & Mocks)
+// ------------------------------------------------------------------
+
+model Exam {
+  id                String   @id @default(cuid())
+  studentProfileId  String
+  studentProfile    StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+
+  // Exam Details (From the Sync Modal)
+  title             String   // e.g., "ISRO Full-Length Mock"
+  type              String   // e.g., "Govt. Central", "Private Enterprise"
+  date              DateTime?
+  duration          String?  // e.g., "120 mins"
+
+  // Routine Calibration Data
+  targetGoal        String?  // e.g., "Score > 85%"
+  routineFocus      String?  // e.g., "Aggressive (15+ hours/week)"
+
+  // Cognitive Autopsy (For past completed exams)
+  isCompleted       Boolean  @default(false)
+  score             Int?
+  totalScore        Int?
+  rootCauseFailure  String?  // e.g., "Paging & Segmentation"
+
+  // AI Generated Metadata
+  aiRecommendation  String?
+  syllabusTags      String[] @default([])
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([studentProfileId]) // Fast lookups for dashboard grids
+}
+
+// ------------------------------------------------------------------
+// 🆕 NEW: AI Vision Tutor History
+// ------------------------------------------------------------------
+
+model VisionQuery {
+  id                String   @id @default(cuid())
+  studentProfileId  String
+  studentProfile    StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+
+  // The actual doubt request
+  imageUrl          String?  // Cloud URL if you decide to store images later
+  identifiedTopic   String   // The Gemini Vision identified context
+  
+  // Storing the 3-Step solution so students can review past doubts
+  solution          Json     
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([studentProfileId])
 }
 
 // ------------------------------------------------------------------
@@ -70,19 +144,21 @@ model TeacherProfile {
 }
 
 model ClassRoster {
-  id               String         @id @default(cuid())
-  teacherId        String
-  teacher          TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  id                 String         @id @default(cuid())
+  teacherId          String
+  teacher            TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   
-  className        String         // e.g., "CS-401 Advanced Operating Systems"
-  studentCount     Int            @default(0)
+  className          String         // e.g., "CS-401 Advanced Operating Systems"
+  studentCount       Int            @default(0)
   
   // ⚡ AI Cache: A snapshot of the class's overall risk profile
   atRiskStudents     Json?          
   aiTeachingStrategy Json?
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  
+  @@index([teacherId])
 }
 
 // ------------------------------------------------------------------
