@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import prisma from "@/lib/db/prisma";
+import { NextResponse } from 'next/server';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+// Assuming Monowar set up the Prisma singleton here based on the architecture doc
+import prisma from '@/lib/db/prisma'; 
 
 const FALLBACK_RADAR = {
   students: [
@@ -22,31 +23,18 @@ const genAI = new GoogleGenerativeAI(apiKey);
 
 export async function GET() {
   try {
-    // 1. THE DB CACHE CHECK
-    let existingRoster = null;
-    
-    if (!process.env.DATABASE_URL) {
-      console.warn("EduOracle [DB]: No DATABASE_URL found. Skipping DB cache check.");
-    } else {
-      try {
-        existingRoster = await prisma.classRoster.findFirst();
-        if (existingRoster && existingRoster.atRiskStudents) {
-          console.log("EduOracle [DB]: Serving cached Radar data from Neon DB.");
-          return NextResponse.json(existingRoster.atRiskStudents, { status: 200 });
-        }
-      } catch (dbReadError) {
-        console.warn("EduOracle [DB]: Cache Read Failed. Ignoring and proceeding to AI.", dbReadError.message);
-      }
+    // 1. THE DB CACHE CHECK (Zero-Auth approach for the MVP Demo)
+    // We grab the first ClassRoster we find. 
+    const existingRoster = await prisma.classRoster.findFirst();
+
+    // If the DB has the AI data cached, return it instantly. No Gemini call needed.
+    if (existingRoster && existingRoster.atRiskStudents) {
+      console.log("EduOracle: Serving cached Radar data from Neon DB.");
+      return NextResponse.json(existingRoster.atRiskStudents, { status: 200 });
     }
 
-    // 2. THE API KEY VALIDATION
-    if (!apiKey || apiKey.includes("YourActualGeminiKeyHere") || apiKey.length < 20) {
-      console.warn("EduOracle [AI]: Invalid or Missing Gemini API Key. Serving hardcoded fallback data.");
-      return NextResponse.json(FALLBACK_RADAR, { status: 200 });
-    }
-
-    // 3. GENERATE NEW DATA
-    console.log("EduOracle [AI]: No cache found. Generating fresh AI data...");
+    // 2. GENERATE NEW DATA IF DB IS EMPTY
+    console.log("EduOracle: No cache found. Generating fresh AI data...");
     const prompt = `
       You are EduOracle. Generate a cohort analysis for 10 demo students studying for the ISRO Scientist 'SC' (Computer Science) exam.
       Identify exactly 3 "Silent Strugglers" (students with passing grades today who are predicted to fail by finals).
@@ -75,12 +63,44 @@ export async function GET() {
 
     const timeoutPromise = new Promise((resolve) => {
       setTimeout(() => {
-        console.warn("EduOracle [AI]: Gemini API timeout hit. Serving fallback.");
+        console.warn("EduOracle: Gemini API timeout hit. Serving fallback.");
         resolve(FALLBACK_RADAR);
       }, 4000);
     });
 
     const finalData = await Promise.race([geminiPromise, timeoutPromise]);
+
+    // 3. SAVE THE NEW DATA TO THE DATABASE
+    if (existingRoster) {
+      // Update existing roster with the new JSON blob
+      await prisma.classRoster.update({
+        where: { id: existingRoster.id },
+        data: { atRiskStudents: finalData }
+      });
+    } else {
+      // Demo failsafe: If the DB is completely empty, create the relational chain
+      // so the demo doesn't crash on the next page reload.
+      await prisma.user.create({
+        data: {
+          name: "Demo Educator",
+          role: "TEACHER",
+          teacherProfile: {
+            create: {
+              schoolName: "Girijananda Chowdhury University",
+              classes: {
+                create: {
+                  className: "CS-401 Advanced Operating Systems",
+                  studentCount: 10,
+                  atRiskStudents: finalData
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    return NextResponse.json(finalData, { status: 200 });
 
     // 4. SAFE DB WRITE 
     if (process.env.DATABASE_URL && finalData !== FALLBACK_RADAR) {
