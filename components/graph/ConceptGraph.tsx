@@ -185,7 +185,7 @@ export default function ConceptGraph() {
         maxZoom={1.5}
         proOptions={{ hideAttribution: true }} // Hides the ReactFlow watermark for a cleaner look
       >
-        <Background color="#ffffff" gap={24} size={1} opacity={0.05} />
+        <Background color="#ffffff" gap={24} size={1} style={{ opacity: 0.05 }} />
         <Controls
           className="fill-white bg-neutral-900/80 border-white/10 backdrop-blur-md rounded-lg overflow-hidden shadow-lg"
           showInteractive={false}
