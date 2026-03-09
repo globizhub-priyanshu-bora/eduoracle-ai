@@ -1,132 +1,195 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useMemo } from "react";
 import ReactFlow, {
   Background,
   Controls,
-  Edge,
-  Node,
   MarkerType,
-  applyNodeChanges,
-  applyEdgeChanges,
-  NodeChange,
-  EdgeChange,
+  Handle,
+  Position,
+  Node,
+  Edge,
 } from "reactflow";
+import { BrainCircuit, AlertCircle, CheckCircle2, Target } from "lucide-react";
+
+// @ts-ignore - Bypassing strict TS for CSS import during the 24hr MVP sprint
 import "reactflow/dist/style.css";
 
-// We use the ISRO CS syllabus (Operating Systems) to prove the AI handles rigorous subjects
+// --------------------------------------------------------
+// 1. CUSTOM NODE COMPONENT (The Glassmorphic UI)
+// --------------------------------------------------------
+const CustomConceptNode = ({
+  data,
+}: {
+  data: { label: string; status: "mastered" | "current" | "failed" };
+}) => {
+  let borderStyle = "";
+  let bgStyle = "";
+  let icon = null;
+
+  // Enforcing the exact glowing border logic from the PRD
+  switch (data.status) {
+    case "mastered":
+      borderStyle =
+        "border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.15)]";
+      bgStyle = "bg-emerald-500/10 text-emerald-400";
+      icon = <CheckCircle2 className="w-4 h-4 text-emerald-400" />;
+      break;
+    case "current":
+      borderStyle =
+        "border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.25)]";
+      bgStyle = "bg-blue-500/10 text-blue-400";
+      icon = <Target className="w-4 h-4 text-blue-400" />;
+      break;
+    case "failed":
+      borderStyle =
+        "border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.4)] animate-pulse";
+      bgStyle = "bg-red-500/10 text-red-400 font-bold";
+      icon = <AlertCircle className="w-4 h-4 text-red-400" />;
+      break;
+  }
+
+  return (
+    <div
+      className={`flex items-center gap-3 px-5 py-3 rounded-xl border-2 backdrop-blur-xl ${borderStyle} ${bgStyle} min-w-[220px]`}
+    >
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="w-3 h-3 bg-neutral-800 border-2 border-neutral-400 rounded-full"
+      />
+      {icon}
+      <div className="text-sm tracking-wide">{data.label}</div>
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="w-3 h-3 bg-neutral-800 border-2 border-neutral-400 rounded-full"
+      />
+    </div>
+  );
+};
+
+// --------------------------------------------------------
+// 2. HARDCODED GRAPH DATA (ISRO SC Demo Context)
+// --------------------------------------------------------
 const initialNodes: Node[] = [
   {
-    id: "1",
-    position: { x: 250, y: 50 },
-    data: { label: "Computer Architecture (Mastered)" },
-    style: {
-      background: "rgba(16, 185, 129, 0.1)", // Emerald tint
-      color: "#34d399",
-      border: "1px solid rgba(16, 185, 129, 0.5)",
-      borderRadius: "8px",
-      padding: "12px",
-      fontWeight: "bold",
-    },
+    id: "os-core",
+    type: "concept",
+    position: { x: 250, y: 0 },
+    data: { label: "Operating Systems (Core)", status: "mastered" },
   },
   {
-    id: "2",
-    position: { x: 250, y: 150 },
-    data: { label: "Memory Hierarchy" },
-    style: {
-      background: "rgba(59, 130, 246, 0.1)", // Blue tint
-      color: "#60a5fa",
-      border: "1px solid rgba(59, 130, 246, 0.5)",
-      borderRadius: "8px",
-      padding: "12px",
-    },
+    id: "mem-mgmt",
+    type: "concept",
+    position: { x: 250, y: 120 },
+    data: { label: "Memory Management", status: "mastered" },
   },
   {
-    id: "3",
-    position: { x: 250, y: 250 },
-    data: { label: "Operating Systems (Current)" },
-    style: {
-      background: "rgba(168, 85, 247, 0.1)", // Purple tint
-      color: "#c084fc",
-      border: "1px solid rgba(168, 85, 247, 0.5)",
-      borderRadius: "8px",
-      padding: "12px",
-    },
+    id: "virtual-mem",
+    type: "concept",
+    position: { x: 250, y: 240 },
+    data: { label: "Virtual Memory", status: "current" },
   },
   {
-    id: "4",
-    position: { x: 250, y: 350 },
-    data: { label: "Paging & Segmentation (Failed Concept)" },
-    style: {
-      background: "rgba(239, 68, 68, 0.1)", // Red tint
-      color: "#f87171",
-      border: "2px solid rgba(239, 68, 68, 0.8)",
-      borderRadius: "8px",
-      padding: "12px",
-      fontWeight: "bold",
-      boxShadow: "0 0 15px rgba(239, 68, 68, 0.3)", // Glowing effect
-    },
+    id: "page-repl",
+    type: "concept",
+    position: { x: 50, y: 380 },
+    data: { label: "Replacement Algorithms", status: "mastered" },
+  },
+  {
+    id: "paging-seg",
+    type: "concept",
+    position: { x: 450, y: 380 },
+    data: { label: "Paging & Segmentation", status: "failed" }, // The missing prerequisite
   },
 ];
 
 const initialEdges: Edge[] = [
   {
-    id: "e1-2",
-    source: "1",
-    target: "2",
-    animated: true,
+    id: "e1",
+    source: "os-core",
+    target: "mem-mgmt",
     style: { stroke: "#34d399", strokeWidth: 2 },
-    markerEnd: { type: MarkerType.ArrowClosed, color: "#34d399" },
+    animated: true,
   },
   {
-    id: "e2-3",
-    source: "2",
-    target: "3",
+    id: "e2",
+    source: "mem-mgmt",
+    target: "virtual-mem",
+    style: { stroke: "#34d399", strokeWidth: 2 },
     animated: true,
+  },
+  {
+    id: "e3",
+    source: "virtual-mem",
+    target: "page-repl",
     style: { stroke: "#60a5fa", strokeWidth: 2 },
-    markerEnd: { type: MarkerType.ArrowClosed, color: "#60a5fa" },
   },
+  // The critical red failure trace
   {
-    id: "e3-4",
-    source: "3",
-    target: "4",
+    id: "e4",
+    source: "virtual-mem",
+    target: "paging-seg",
     animated: true,
-    style: { stroke: "#f87171", strokeWidth: 3 }, // Thicker red line pointing to the failure
-    markerEnd: { type: MarkerType.ArrowClosed, color: "#f87171" },
+    style: { stroke: "#ef4444", strokeWidth: 3, strokeDasharray: "5,5" },
+    markerEnd: {
+      type: MarkerType.ArrowClosed,
+      color: "#ef4444",
+      width: 20,
+      height: 20,
+    },
   },
 ];
 
+// --------------------------------------------------------
+// 3. MAIN COMPONENT EXPORT
+// --------------------------------------------------------
 export default function ConceptGraph() {
-  const [nodes, setNodes] = useState<Node[]>(initialNodes);
-  const [edges, setEdges] = useState<Edge[]>(initialEdges);
-
-  const onNodesChange = useCallback(
-    (changes: NodeChange[]) =>
-      setNodes((nds) => applyNodeChanges(changes, nds)),
-    [],
-  );
-
-  const onEdgesChange = useCallback(
-    (changes: EdgeChange[]) =>
-      setEdges((eds) => applyEdgeChanges(changes, eds)),
-    [],
-  );
+  // Memoize nodeTypes so ReactFlow doesn't re-render them constantly
+  const nodeTypes = useMemo(() => ({ concept: CustomConceptNode }), []);
 
   return (
-    <div className="w-full h-[500px] bg-neutral-950/50 border border-white/10 rounded-2xl overflow-hidden relative">
-      <div className="absolute top-4 left-4 z-10 bg-black/60 px-3 py-1 rounded-full border border-white/10 text-xs text-neutral-400 backdrop-blur-md">
-        Cognitive Dependency Map
+    <div className="w-full h-[600px] bg-neutral-950/80 border border-white/10 rounded-2xl overflow-hidden relative shadow-2xl">
+      {/* Floating UI Legend */}
+      <div className="absolute top-6 left-6 z-10 bg-neutral-900/80 p-5 rounded-xl border border-white/10 backdrop-blur-xl shadow-xl">
+        <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+          <BrainCircuit className="w-5 h-5 text-purple-400" />
+          AI Dependency Trace
+        </h3>
+        <div className="flex flex-col gap-3 text-sm">
+          <div className="flex items-center gap-3 text-emerald-400">
+            <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]"></div>
+            Mastered Domain
+          </div>
+          <div className="flex items-center gap-3 text-blue-400">
+            <div className="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]"></div>
+            Current Target Topic
+          </div>
+          <div className="flex items-center gap-3 text-red-400 font-medium">
+            <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse shadow-[0_0_15px_rgba(239,68,68,1)]"></div>
+            Root Cause: Missing Prerequisite
+          </div>
+        </div>
       </div>
 
+      {/* ReactFlow Canvas */}
       <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
+        nodes={initialNodes}
+        edges={initialEdges}
+        nodeTypes={nodeTypes}
         fitView
-        className="dark">
-        <Background color="#333" gap={16} size={1} />
-        <Controls className="bg-neutral-900 border-white/10 fill-white" />
+        fitViewOptions={{ padding: 0.2 }}
+        className="bg-transparent"
+        minZoom={0.5}
+        maxZoom={1.5}
+        proOptions={{ hideAttribution: true }} // Hides the ReactFlow watermark for a cleaner look
+      >
+        <Background color="#ffffff" gap={24} size={1} opacity={0.05} />
+        <Controls
+          className="fill-white bg-neutral-900/80 border-white/10 backdrop-blur-md rounded-lg overflow-hidden shadow-lg"
+          showInteractive={false}
+        />
       </ReactFlow>
     </div>
   );
