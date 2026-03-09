@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import SidebarContent from "@/app/components/layout/SidebarContent";
+import SidebarContent from "@/components/layout/SidebarContent";
 import {
   BrainCircuit,
   LayoutDashboard,

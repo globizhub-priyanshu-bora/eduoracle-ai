@@ -1,0 +1,86 @@
+// ------------------------------------------------------------------
+// 🏗️ EduOracle AI - Neon Serverless Postgres Schema
+// ------------------------------------------------------------------
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+ 
+}
+
+// ------------------------------------------------------------------
+// CORE IDENTITY (Future-proofed for Auth)
+// ------------------------------------------------------------------
+
+model User {
+  id        String   @id @default(cuid())
+  role      Role     @default(STUDENT)
+  name      String
+  email     String?  @unique // Optional for the frictionless MVP
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  studentProfile StudentProfile?
+  teacherProfile TeacherProfile?
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+}
+
+// ------------------------------------------------------------------
+// STUDENT MODE: The Growth Engine Data
+// ------------------------------------------------------------------
+
+model StudentProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  targetExam      String   // e.g., "ISRO Scientist 'SC'"
+  weakSubjects    String[] // Postgres handles arrays natively
+  
+  // ⚡ AI Cache: Storing the latest Gemini outputs so we don't spam the API on page refresh
+  latestHealthScore Int?     @default(0)
+  latestAIInsights  Json?    // Stores the Learning DNA, GPS Route, and Predictions
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ------------------------------------------------------------------
+// TEACHER MODE: The Command Center Data
+// ------------------------------------------------------------------
+
+model TeacherProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  schoolName      String   // e.g., "Girijananda Chowdhury University"
+  classes         ClassRoster[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model ClassRoster {
+  id               String         @id @default(cuid())
+  teacherId        String
+  teacher          TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  
+  className        String         // e.g., "CS-401 Advanced Operating Systems"
+  studentCount     Int            @default(0)
+  
+  // ⚡ AI Cache: A snapshot of the class's overall risk profile
+  atRiskStudents     Json?          
+  aiTeachingStrategy Json?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
