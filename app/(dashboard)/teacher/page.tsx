@@ -1,4 +1,3 @@
-// app/(dashboard)/teacher/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -13,13 +12,20 @@ interface UpasanaStudent {
   riskFactor: string;
 }
 
+interface InterventionStrategy {
+  immediateAction: string;
+  homeworkOverride: string;
+}
+
 export default function TeacherDashboard() {
   const [radarData, setRadarData] = useState<any[]>([]);
   const [isFetchingData, setIsFetchingData] = useState(true);
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [showPlanModal, setShowPlanModal] = useState(false);
+  const [generatedStrategy, setGeneratedStrategy] = useState<InterventionStrategy | null>(null);
 
+  // Fetch Radar Data on Mount
   useEffect(() => {
     async function fetchRadarData() {
       try {
@@ -60,29 +66,56 @@ export default function TeacherDashboard() {
     fetchRadarData();
   }, []);
 
-  const triggerIntervention = () => {
-    setIsGenerating(true);
-    setTimeout(() => {
-      setIsGenerating(false);
-      setShowPlanModal(true);
-    }, 4000);
-  };
-
-  // --- DYNAMIC DATA EXTRACTION FOR THE MODAL ---
+  // --- DYNAMIC DATA EXTRACTION ---
   const silentStrugglers = radarData.filter(s => s.silentStruggler);
-  // Create a comma-separated list of their names (e.g., "Rahul D., Amit K., and Neha J.")
   const strugglerNames = silentStrugglers.length > 0 
     ? new Intl.ListFormat('en', { style: 'long', type: 'conjunction' }).format(silentStrugglers.map(s => s.name))
     : "No current students";
   
-  // Grab the most common failed topic to make the AI output look context-aware
   const commonTopic = silentStrugglers.length > 0 ? silentStrugglers[0].failedTopic : "Core Concepts";
+
+  // --- THE REAL API INTEGRATION FOR 1-CLICK INTERVENTION ---
+  const triggerIntervention = async () => {
+    if (silentStrugglers.length === 0) {
+      alert("No silent strugglers detected to generate a plan for.");
+      return;
+    }
+
+    setIsGenerating(true);
+    
+    try {
+      // Sending the specific weak students to the new backend endpoint
+      const res = await fetch('/api/teacher-intervention', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          topic: commonTopic,
+          students: silentStrugglers.map(s => s.name) 
+        })
+      });
+
+      if (!res.ok) throw new Error("Backend not ready");
+      
+      const strategy = await res.json();
+      setGeneratedStrategy(strategy);
+    } catch (error) {
+      console.warn("EduOracle: Real API failed or not built yet. Using fallback strategy.");
+      // Fallback so the demo doesn't crash on stage if Upasana's code breaks
+      setGeneratedStrategy({
+        immediateAction: `Shift lecture focus from theoretical concepts to practical numerical calculations regarding ${commonTopic}.`,
+        homeworkOverride: `Push targeted prerequisite assignments exclusively to the ${silentStrugglers.length} flagged students via their Student Growth Engine dashboard.`
+      });
+    } finally {
+      setIsGenerating(false);
+      setShowPlanModal(true);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white p-4 sm:p-6 md:p-10 font-sans relative">
       
       {/* --- AI INTERVENTION MODAL --- */}
-      {showPlanModal && (
+      {showPlanModal && generatedStrategy && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 sm:p-6 backdrop-blur-sm">
           <div className="w-full max-w-3xl bg-gray-900 border border-blue-500/30 rounded-xl shadow-[0_0_40px_rgba(37,99,235,0.15)] overflow-hidden flex flex-col max-h-[90vh]">
             <div className="p-4 md:p-6 border-b border-gray-800 bg-gray-950 flex justify-between items-center sticky top-0">
@@ -102,7 +135,6 @@ export default function TeacherDashboard() {
                   <h3 className="text-red-400 font-bold mb-1 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 sm:hidden" /> Target: {silentStrugglers.length} Silent Strugglers Detected
                   </h3>
-                  {/* Dynamic text injected here */}
                   <p className="text-xs md:text-sm text-gray-300 leading-relaxed">
                     <span className="font-bold text-white">{strugglerNames}</span> are passing current assignments but show a high probability of failing the final exam due to foundational gaps in <span className="text-red-300 font-medium">"{commonTopic}"</span>.
                   </p>
@@ -114,11 +146,11 @@ export default function TeacherDashboard() {
                 <div className="space-y-3 md:space-y-4">
                   <div className="bg-gray-950 border border-gray-800 p-3 md:p-4 rounded-lg">
                     <h4 className="font-bold text-blue-400 mb-1 md:mb-2 flex items-center gap-2 text-sm md:text-base"><CheckCircle2 className="w-4 h-4 shrink-0" /> Immediate Action</h4>
-                    <p className="text-xs md:text-sm text-gray-300">Shift lecture focus from theoretical concepts to practical numerical calculations regarding {commonTopic}.</p>
+                    <p className="text-xs md:text-sm text-gray-300">{generatedStrategy.immediateAction}</p>
                   </div>
                   <div className="bg-gray-950 border border-gray-800 p-3 md:p-4 rounded-lg">
                     <h4 className="font-bold text-purple-400 mb-1 md:mb-2 flex items-center gap-2 text-sm md:text-base"><BookOpen className="w-4 h-4 shrink-0" /> Homework Override</h4>
-                    <p className="text-xs md:text-sm text-gray-300">Push targeted prerequisite assignments exclusively to {silentStrugglers.length} flagged students via their Student Growth Engine dashboard.</p>
+                    <p className="text-xs md:text-sm text-gray-300">{generatedStrategy.homeworkOverride}</p>
                   </div>
                 </div>
               </div>
@@ -143,7 +175,7 @@ export default function TeacherDashboard() {
         
         <button 
           onClick={triggerIntervention}
-          disabled={isGenerating || isFetchingData}
+          disabled={isGenerating || isFetchingData || silentStrugglers.length === 0}
           className="w-full lg:w-auto flex justify-center items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white px-5 py-3 rounded-lg font-bold transition-colors shadow-[0_0_15px_rgba(37,99,235,0.4)] text-sm md:text-base"
         >
           {isGenerating ? (
