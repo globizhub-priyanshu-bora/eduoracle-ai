@@ -10,6 +10,8 @@ import {
   AlertTriangle,
   Settings,
   LogOut,
+  Book,
+  ChartNoAxesCombinedIcon,
 } from "lucide-react";
 
 export default function SidebarContent() {
@@ -24,6 +26,8 @@ export default function SidebarContent() {
     { name: "Diagnostic Overview", href: "/student", icon: LayoutDashboard },
     { name: "Academic GPS", href: "/student/gps", icon: Map },
     { name: "Doubt Tutor (Vision)", href: "/student/tutor", icon: Camera },
+    { name: "My Exams", href: "/student/exams", icon: Book },
+    { name: "Career Goals", href: "/student/career-goals", icon: ChartNoAxesCombinedIcon },
   ];
 
   const teacherNav = [
@@ -50,7 +54,8 @@ export default function SidebarContent() {
             isTeacher
               ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
               : "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-          }`}>
+          }`}
+        >
           {isTeacher ? "Educator Mode" : "Student Mode"}
         </div>
       </div>
@@ -68,7 +73,8 @@ export default function SidebarContent() {
                 isActive
                   ? "bg-white/10 text-white shadow-sm border border-white/5"
                   : "hover:bg-white/5 hover:text-white"
-              }`}>
+              }`}
+            >
               <Icon
                 className={`w-4 h-4 ${
                   isActive
@@ -92,7 +98,8 @@ export default function SidebarContent() {
         </button>
         <button
           onClick={() => router.push("/login")}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-sm font-medium hover:bg-red-500/10 text-neutral-400 hover:text-red-400 mt-1">
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-sm font-medium hover:bg-red-500/10 text-neutral-400 hover:text-red-400 mt-1"
+        >
           <LogOut className="w-4 h-4" />
           Exit Demo
         </button>
