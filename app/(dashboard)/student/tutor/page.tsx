@@ -12,6 +12,7 @@ import {
   ChevronRight,
   BrainCircuit,
   ArrowLeft,
+  Target,
 } from "lucide-react";
 import Link from "next/link";
 
