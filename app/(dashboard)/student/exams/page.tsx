@@ -16,29 +16,53 @@ import {
   Plus,
   X,
   UploadCloud,
-  FileText,
+  Settings2,
+  BookMarked,
+  Award,
+  Building2,
+  Landmark,
 } from "lucide-react";
 import Link from "next/link";
 
-// Hardcoded predictive exam data for the ISRO SC Context
+// Expanded hardcoded predictive exam data
 const mockExamsData = {
   readinessScore: 78,
   upcomingMocks: [
     {
       id: "mock-1",
-      title: "ISRO Full-Length Mock Test 4",
-      date: "Scheduled for Day 7 of GPS",
+      title: "ISRO Scientist 'SC' 2026",
+      type: "Govt. Central",
+      date: "Nov 15, 2026",
       duration: "120 mins",
-      aiRecommendation: "Wait until GPS completion",
+      aiRecommendation: "Wait until Virtual Memory GPS completion",
       locked: true,
+      targetGoal: "Top 1%",
+      syllabusTags: ["Core OS", "Networks", "Data Structures"],
+      icon: <Landmark className="w-3.5 h-3.5" />,
     },
     {
       id: "mock-2",
       title: "Targeted: Memory Management",
+      type: "AI Micro-Mock",
       date: "Recommended Today",
       duration: "45 mins",
       aiRecommendation: "Optimal time to test Virtual Memory",
       locked: false,
+      targetGoal: "Score > 85%",
+      syllabusTags: ["Paging", "Segmentation", "TLB"],
+      icon: <Brain className="w-3.5 h-3.5" />,
+    },
+    {
+      id: "mock-3",
+      title: "TCS Ninja - Placement Drive",
+      type: "Private Enterprise",
+      date: "Dec 02, 2026",
+      duration: "90 mins",
+      aiRecommendation: "Start Aptitude routine next week",
+      locked: true,
+      targetGoal: "Clear Cutoff",
+      syllabusTags: ["Aptitude", "Core CS", "Coding"],
+      icon: <Building2 className="w-3.5 h-3.5" />,
     },
   ],
   pastExams: [
@@ -76,6 +100,13 @@ const itemVariants = {
 export default function PredictiveExamsPage() {
   const [data] = useState(mockExamsData);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showGoalModal, setShowGoalModal] = useState(false);
+  const [selectedExamTitle, setSelectedExamTitle] = useState("");
+
+  const openGoalModal = (title: string) => {
+    setSelectedExamTitle(title);
+    setShowGoalModal(true);
+  };
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white p-4 sm:p-6 md:p-10 font-sans overflow-x-hidden relative">
@@ -158,51 +189,82 @@ export default function PredictiveExamsPage() {
 
         {/* Two Column Layout for Exams */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
-          {/* Scheduled & Recommended Exams */}
+          {/* Scheduled & Recommended Exams - ENHANCED */}
           <motion.div variants={itemVariants} className="space-y-4">
             <h2 className="text-lg md:text-xl font-bold flex items-center gap-2 mb-4">
-              <Calendar className="w-5 h-5 text-purple-400" /> Upcoming
-              Assessments
+              <Calendar className="w-5 h-5 text-purple-400" /> Exam Routines &
+              Goals
             </h2>
 
             {data.upcomingMocks.map((exam) => (
               <div
                 key={exam.id}
-                className={`bg-white/5 border rounded-2xl p-5 transition-all relative overflow-hidden ${exam.locked ? "border-white/5 opacity-80" : "border-white/10 hover:border-purple-500/30"}`}
+                className={`bg-white/5 border rounded-2xl p-5 transition-all relative overflow-hidden flex flex-col ${exam.locked ? "border-white/5 opacity-85" : "border-white/10 hover:border-purple-500/30"}`}
               >
-                <div className="flex justify-between items-start mb-4">
-                  <div>
+                <div className="flex justify-between items-start mb-3">
+                  <div className="w-full">
+                    {/* Exam Type Badge */}
+                    <div
+                      className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] uppercase font-bold tracking-wider mb-2 border ${
+                        exam.type.includes("Govt")
+                          ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                          : exam.type.includes("Private")
+                            ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                            : "bg-purple-500/10 text-purple-400 border-purple-500/20"
+                      }`}
+                    >
+                      {exam.icon} {exam.type}
+                    </div>
+
                     <h3 className="text-base md:text-lg font-bold text-white mb-1">
                       {exam.title}
                     </h3>
-                    <div className="flex flex-wrap items-center gap-3 md:gap-4 text-xs md:text-sm text-neutral-400">
+
+                    <div className="flex flex-wrap items-center gap-3 md:gap-4 text-xs md:text-sm text-neutral-400 mt-2">
                       <span className="flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5" /> {exam.duration}
                       </span>
                       <span className="flex items-center gap-1">
                         <Calendar className="w-3.5 h-3.5" /> {exam.date}
                       </span>
+                      <span className="flex items-center gap-1 text-emerald-400">
+                        <Award className="w-3.5 h-3.5" /> Goal:{" "}
+                        {exam.targetGoal}
+                      </span>
                     </div>
                   </div>
-                  {exam.locked ? (
-                    <div className="bg-black/50 p-2 rounded-lg border border-white/5 shrink-0">
-                      <Lock className="w-4 h-4 text-neutral-500" />
-                    </div>
-                  ) : (
-                    <button className="bg-purple-600/20 text-purple-400 hover:bg-purple-600 hover:text-white px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition-colors shrink-0">
-                      Launch
-                    </button>
-                  )}
                 </div>
 
-                <div
-                  className={`text-xs md:text-sm px-3 py-2.5 rounded-lg border flex items-start md:items-center gap-2 ${exam.locked ? "bg-amber-500/10 border-amber-500/20 text-amber-400" : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"}`}
-                >
-                  <Brain className="w-4 h-4 shrink-0 mt-0.5 md:mt-0" />
-                  <span>
-                    <span className="font-semibold">AI Suggests:</span>{" "}
-                    {exam.aiRecommendation}
-                  </span>
+                {/* Syllabus Tags */}
+                <div className="flex flex-wrap gap-2 mb-4 mt-1">
+                  {exam.syllabusTags.map((tag, idx) => (
+                    <span
+                      key={idx}
+                      className="bg-black/40 border border-white/5 text-neutral-300 text-[10px] md:text-xs px-2 py-1 rounded-md flex items-center gap-1"
+                    >
+                      <BookMarked className="w-3 h-3 text-neutral-500" /> {tag}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 mt-auto pt-4 border-t border-white/5">
+                  <div
+                    className={`flex-1 text-xs md:text-sm px-3 py-2.5 rounded-lg border flex items-start md:items-center gap-2 ${exam.locked ? "bg-amber-500/5 border-amber-500/20 text-amber-400" : "bg-emerald-500/5 border-emerald-500/20 text-emerald-400"}`}
+                  >
+                    <Brain className="w-4 h-4 shrink-0 mt-0.5 md:mt-0" />
+                    <span>
+                      <span className="font-semibold">AI Suggests:</span>{" "}
+                      {exam.aiRecommendation}
+                    </span>
+                  </div>
+
+                  {/* Goal/Routine Settings Trigger */}
+                  <button
+                    onClick={() => openGoalModal(exam.title)}
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs md:text-sm font-medium transition-colors shrink-0"
+                  >
+                    <Settings2 className="w-4 h-4 text-neutral-400" /> Routine
+                  </button>
                 </div>
               </div>
             ))}
@@ -270,7 +332,7 @@ export default function PredictiveExamsPage() {
       </motion.div>
 
       {/* ------------------------------------------------------------------ */}
-      {/* "SYNC TARGET EXAM" MODAL OVERLAY (MOBILE RESPONSIVE) */}
+      {/* 1. "SYNC TARGET EXAM" MODAL OVERLAY */}
       {/* ------------------------------------------------------------------ */}
       <AnimatePresence>
         {showAddModal && (
@@ -287,7 +349,6 @@ export default function PredictiveExamsPage() {
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               className="relative w-full max-w-lg bg-neutral-900 border border-white/10 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
             >
-              {/* Modal Header */}
               <div className="flex items-center justify-between p-5 md:p-6 border-b border-white/10 bg-white/5 shrink-0">
                 <div>
                   <h2 className="text-lg md:text-xl font-bold flex items-center gap-2">
@@ -306,7 +367,6 @@ export default function PredictiveExamsPage() {
                 </button>
               </div>
 
-              {/* Modal Form Content */}
               <div className="p-5 md:p-6 space-y-5 overflow-y-auto custom-scrollbar">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
@@ -322,22 +382,22 @@ export default function PredictiveExamsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
+                      Type
+                    </label>
+                    <select className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm md:text-base text-white focus:outline-none focus:border-blue-500/50 transition-colors appearance-none">
+                      <option>Govt. (Central/State)</option>
+                      <option>Private Enterprise</option>
+                      <option>University Standard</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
                       Date
                     </label>
                     <input
                       type="date"
                       className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm md:text-base text-white focus:outline-none focus:border-blue-500/50 transition-colors [color-scheme:dark]"
                     />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
-                      Context
-                    </label>
-                    <select className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm md:text-base text-white focus:outline-none focus:border-blue-500/50 transition-colors appearance-none">
-                      <option>ISRO SC Syllabus</option>
-                      <option>GATE CS Syllabus</option>
-                      <option>University Standard</option>
-                    </select>
                   </div>
                 </div>
 
@@ -348,8 +408,6 @@ export default function PredictiveExamsPage() {
                       Optional
                     </span>
                   </label>
-
-                  {/* Faux Drag & Drop Zone */}
                   <div className="w-full border-2 border-dashed border-white/20 rounded-xl p-6 flex flex-col items-center justify-center gap-3 bg-white/5 hover:bg-white/10 transition-colors cursor-pointer group">
                     <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
                       <UploadCloud className="w-6 h-6 text-blue-400" />
@@ -366,14 +424,94 @@ export default function PredictiveExamsPage() {
                 </div>
               </div>
 
-              {/* Modal Footer / Submit */}
               <div className="p-5 md:p-6 border-t border-white/10 bg-black/40 shrink-0">
                 <button
-                  onClick={() => setShowAddModal(false)} // Just closes it for the demo
+                  onClick={() => setShowAddModal(false)}
                   className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold py-4 rounded-xl transition-all shadow-[0_0_20px_rgba(59,130,246,0.2)] active:scale-[0.98]"
                 >
-                  <Brain className="w-5 h-5" />
-                  Initialize Predictive Sync
+                  <Brain className="w-5 h-5" /> Initialize Predictive Sync
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* 2. "SET ROUTINE & GOALS" MODAL OVERLAY */}
+      {/* ------------------------------------------------------------------ */}
+      <AnimatePresence>
+        {showGoalModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ y: "100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative w-full max-w-lg bg-neutral-900 border border-white/10 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+            >
+              <div className="flex items-center justify-between p-5 md:p-6 border-b border-white/10 bg-white/5 shrink-0">
+                <div>
+                  <h2 className="text-lg md:text-xl font-bold flex items-center gap-2 text-purple-400">
+                    <Settings2 className="w-5 h-5" /> Calibrate Routine
+                  </h2>
+                  <p className="text-white font-medium text-sm md:text-base mt-1">
+                    {selectedExamTitle}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowGoalModal(false)}
+                  className="p-2 bg-white/5 hover:bg-red-500/20 text-white hover:text-red-400 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-5 md:p-6 space-y-6 overflow-y-auto custom-scrollbar">
+                {/* Goal Input */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-neutral-400 uppercase tracking-wider flex items-center gap-1">
+                    <Award className="w-4 h-4 text-emerald-400" /> Target Goal /
+                    Cutoff
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g., Score > 85% or Top 1%"
+                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm md:text-base text-white focus:outline-none focus:border-purple-500/50 transition-colors placeholder:text-neutral-600"
+                  />
+                </div>
+
+                {/* Routine Focus Input */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-neutral-400 uppercase tracking-wider flex items-center gap-1">
+                    <Clock className="w-4 h-4 text-blue-400" /> Weekly Routine
+                    Focus
+                  </label>
+                  <select className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm md:text-base text-white focus:outline-none focus:border-purple-500/50 transition-colors appearance-none">
+                    <option>Aggressive (15+ hours/week)</option>
+                    <option>Balanced (7-14 hours/week)</option>
+                    <option>Maintenance (Under 7 hours/week)</option>
+                  </select>
+                </div>
+
+                <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4 text-sm text-purple-200">
+                  <span className="font-bold text-purple-400">Note:</span>{" "}
+                  Adjusting your routine here will instantly recalculate your
+                  Academic GPS timeline.
+                </div>
+              </div>
+
+              <div className="p-5 md:p-6 border-t border-white/10 bg-black/40 shrink-0">
+                <button
+                  onClick={() => setShowGoalModal(false)}
+                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold py-4 rounded-xl transition-all shadow-[0_0_20px_rgba(168,85,247,0.2)] active:scale-[0.98]"
+                >
+                  <Brain className="w-5 h-5" /> Calibrate AI Engine
                 </button>
               </div>
             </motion.div>

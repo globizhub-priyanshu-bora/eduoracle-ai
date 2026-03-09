@@ -11,6 +11,7 @@ import {
   Settings,
   LogOut,
   Book,
+  ChartNoAxesCombinedIcon,
 } from "lucide-react";
 
 export default function SidebarContent() {
@@ -26,6 +27,7 @@ export default function SidebarContent() {
     { name: "Academic GPS", href: "/student/gps", icon: Map },
     { name: "Doubt Tutor (Vision)", href: "/student/tutor", icon: Camera },
     { name: "My Exams", href: "/student/exams", icon: Book },
+    { name: "Career Goals", href: "/student/career-goals", icon: ChartNoAxesCombinedIcon },
   ];
 
   const teacherNav = [
