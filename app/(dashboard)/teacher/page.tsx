@@ -1,87 +1,140 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, Loader2, Target, Users } from "lucide-react";
+import { AlertTriangle, Loader2, Target, Users, X, CheckCircle2, BookOpen } from "lucide-react";
 import { mockTeacherRadar } from "@/lib/fallbacks/mockData";
 
 export default function TeacherDashboard() {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showPlanModal, setShowPlanModal] = useState(false);
 
-  // Simulating the "4-Second Magic Trick" from the PRD
+  // The 4-Second Magic Trick
   const triggerIntervention = () => {
     setIsGenerating(true);
     setTimeout(() => {
       setIsGenerating(false);
-      alert("Mock API Intercept: 1-Click Intervention Strategy Generated for 3 Silent Strugglers.");
+      setShowPlanModal(true);
     }, 4000);
   };
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-white p-6 md:p-10 font-sans">
-      {/* Header */}
-      <header className="flex justify-between items-end mb-10 border-b border-white/10 pb-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Educator Command Center</h1>
-          <p className="text-neutral-400 mt-1">Class: CS-401 Advanced Systems (ISRO Prep)</p>
+    <div className="min-h-screen bg-neutral-950 text-white p-4 sm:p-6 md:p-10 font-sans relative">
+      
+      {/* --- AI INTERVENTION MODAL --- */}
+      {showPlanModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 sm:p-6 backdrop-blur-sm">
+          <div className="w-full max-w-3xl bg-gray-900 border border-blue-500/30 rounded-xl shadow-[0_0_40px_rgba(37,99,235,0.15)] overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-4 md:p-6 border-b border-gray-800 bg-gray-950 flex justify-between items-center sticky top-0">
+              <div className="flex items-center gap-2 md:gap-3">
+                <Target className="w-5 h-5 md:w-6 md:h-6 text-blue-400 shrink-0" />
+                <h2 className="text-lg md:text-xl font-bold truncate">AI Strategy Generated</h2>
+              </div>
+              <button onClick={() => setShowPlanModal(false)} className="text-gray-400 hover:text-white transition-colors bg-gray-800 p-2 rounded-full shrink-0 ml-2">
+                <X className="w-4 h-4 md:w-5 md:h-5" />
+              </button>
+            </div>
+            
+            <div className="p-4 md:p-6 overflow-y-auto space-y-4 md:space-y-6">
+              <div className="bg-red-500/10 border border-red-500/20 p-3 md:p-4 rounded-lg flex flex-col sm:flex-row items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 sm:mt-0.5 hidden sm:block" />
+                <div>
+                  <h3 className="text-red-400 font-bold mb-1 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 sm:hidden" /> Target: 3 Silent Strugglers
+                  </h3>
+                  <p className="text-xs md:text-sm text-gray-300 leading-relaxed">Amit Singh, Vikram Das, and Kavita Iyer are passing current assignments but show a 92% probability of failing the final exam on the topic of "Virtual Memory".</p>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-base md:text-lg font-bold mb-3 md:mb-4 text-blue-100 border-b border-gray-800 pb-2">Recommended 7-Day Action Plan</h3>
+                <div className="space-y-3 md:space-y-4">
+                  <div className="bg-gray-950 border border-gray-800 p-3 md:p-4 rounded-lg">
+                    <h4 className="font-bold text-blue-400 mb-1 md:mb-2 flex items-center gap-2 text-sm md:text-base"><CheckCircle2 className="w-4 h-4 shrink-0" /> Immediate Action</h4>
+                    <p className="text-xs md:text-sm text-gray-300">Shift lecture focus from theoretical Page Faults to practical numerical calculations.</p>
+                  </div>
+                  <div className="bg-gray-950 border border-gray-800 p-3 md:p-4 rounded-lg">
+                    <h4 className="font-bold text-purple-400 mb-1 md:mb-2 flex items-center gap-2 text-sm md:text-base"><BookOpen className="w-4 h-4 shrink-0" /> Homework Override</h4>
+                    <p className="text-xs md:text-sm text-gray-300">Push the "Visual-Logical Memory Mapping" assignment exclusively to these 3 students via their Student Growth Engine dashboard.</p>
+                  </div>
+                </div>
+              </div>
+              
+              <button 
+                onClick={() => setShowPlanModal(false)}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 md:py-4 rounded-lg transition-colors text-sm md:text-base mt-2"
+              >
+                Deploy Strategy to Dashboards
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- HEADER --- */}
+      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4 mb-6 md:mb-10 border-b border-white/10 pb-6">
+        <div className="w-full lg:w-auto">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Educator Command Center</h1>
+          <p className="text-sm md:text-base text-neutral-400 mt-1">Class: CS-401 Advanced Systems</p>
         </div>
         
-        {/* The 1-Click Intervention Button */}
         <button 
           onClick={triggerIntervention}
           disabled={isGenerating}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white px-5 py-3 rounded-lg font-bold transition-colors shadow-[0_0_15px_rgba(37,99,235,0.4)]"
+          className="w-full lg:w-auto flex justify-center items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white px-5 py-3 rounded-lg font-bold transition-colors shadow-[0_0_15px_rgba(37,99,235,0.4)] text-sm md:text-base"
         >
           {isGenerating ? (
-            <><Loader2 className="w-5 h-5 animate-spin" /> Generating Strategy...</>
+            <><Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" /> Analyzing Graph...</>
           ) : (
-            <><Target className="w-5 h-5" /> 1-Click Intervention Plan</>
+            <><Target className="w-4 h-4 md:w-5 md:h-5 shrink-0" /> 1-Click Intervention Plan</>
           )}
         </button>
       </header>
 
-      {/* Heatmap Section */}
+      {/* --- HEATMAP --- */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden shadow-lg">
-        <div className="p-6 border-b border-gray-800 flex justify-between items-center bg-gray-900/50">
-          <div className="flex items-center gap-3">
-            <Users className="w-6 h-6 text-purple-400" />
-            <h2 className="text-xl font-bold">Future Failure Heatmap</h2>
+        <div className="p-4 md:p-6 border-b border-gray-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 md:gap-4 bg-gray-900/50">
+          <div className="flex items-center gap-2 md:gap-3">
+            <Users className="w-5 h-5 md:w-6 md:h-6 text-purple-400 shrink-0" />
+            <h2 className="text-lg md:text-xl font-bold">Future Failure Heatmap</h2>
           </div>
-          <div className="flex items-center gap-2 text-sm text-gray-400 bg-gray-950 px-3 py-1.5 rounded-full border border-gray-800">
-            <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse"></div>
-            <span>3 Silent Strugglers Detected</span>
+          <div className="flex items-center gap-2 text-xs md:text-sm text-gray-400 bg-gray-950 px-3 py-1.5 rounded-full border border-gray-800 w-full sm:w-auto justify-center sm:justify-start">
+            <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-red-500 animate-pulse shrink-0"></div>
+            <span className="truncate">3 Silent Strugglers Detected</span>
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-[600px]">
             <thead>
-              <tr className="bg-gray-950 text-gray-400 uppercase text-xs tracking-wider border-b border-gray-800">
-                <th className="p-4 font-medium">Student Name</th>
-                <th className="p-4 font-medium">Current Grade</th>
-                <th className="p-4 font-medium">AI Predicted Finals</th>
-                <th className="p-4 font-medium">Risk Status</th>
+              <tr className="bg-gray-950 text-gray-400 uppercase text-[10px] md:text-xs tracking-wider border-b border-gray-800">
+                <th className="p-3 md:p-4 font-medium">Student Name</th>
+                <th className="p-3 md:p-4 font-medium">Current Grade</th>
+                <th className="p-3 md:p-4 font-medium">AI Predicted Finals</th>
+                <th className="p-3 md:p-4 font-medium">Risk Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800">
+            <tbody className="divide-y divide-gray-800 text-sm md:text-base">
               {mockTeacherRadar.map((student) => (
                 <tr 
                   key={student.id} 
                   className={`transition-colors hover:bg-gray-800/30 ${student.silentStruggler ? 'bg-red-950/10' : ''}`}
                 >
-                  <td className="p-4 font-medium flex items-center gap-3">
-                    {student.name}
-                    {student.silentStruggler && (
-                      <span className="flex items-center gap-1 bg-red-500/20 text-red-400 border border-red-500/30 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">
-                        <AlertTriangle className="w-3 h-3" /> Silent Struggler
-                      </span>
-                    )}
+                  <td className="p-3 md:p-4 font-medium">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                      <span>{student.name}</span>
+                      {student.silentStruggler && (
+                        <span className="inline-flex items-center gap-1 bg-red-500/20 text-red-400 border border-red-500/30 text-[9px] md:text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide w-fit">
+                          <AlertTriangle className="w-3 h-3 shrink-0" /> Silent Struggler
+                        </span>
+                      )}
+                    </div>
                   </td>
-                  <td className="p-4 text-gray-300">{student.currentGrade}</td>
-                  <td className={`p-4 font-bold ${student.predictedOutcome === 'Fail' ? 'text-red-400' : 'text-green-400'}`}>
+                  <td className="p-3 md:p-4 text-gray-300">{student.currentGrade}</td>
+                  <td className={`p-3 md:p-4 font-bold ${student.predictedOutcome === 'Fail' ? 'text-red-400' : 'text-green-400'}`}>
                     {student.predictedOutcome}
                   </td>
-                  <td className="p-4">
-                    <span className={`px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wider
+                  <td className="p-3 md:p-4">
+                    <span className={`px-2 py-1 md:px-3 rounded-md text-[10px] md:text-xs font-bold uppercase tracking-wider inline-block
                       ${student.riskLevel === 'Critical' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 
                         student.riskLevel === 'High' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 
                         student.riskLevel === 'Severe' ? 'bg-red-900/40 text-red-500 border border-red-700/50' :
