@@ -85,7 +85,6 @@ export default function AttendancePage() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [todayDate, setTodayDate] = useState<string>("Loading date...");
 
-  // FIX 2: Added strict TypeScript casting to the reducer
   const [attendance, setAttendance] = useState<
     Record<string, AttendanceStatus>
   >(
@@ -95,7 +94,6 @@ export default function AttendancePage() {
     ),
   );
 
-  // FIX 1: Hydration safe date rendering
   useEffect(() => {
     setTodayDate(
       new Date().toLocaleDateString("en-US", {
@@ -274,10 +272,10 @@ export default function AttendancePage() {
                   </div>
                   {(student.name === "Amit Kalita" ||
                     student.name === "Karan Varma") && (
-                    <AlertCircle
-                      className="w-4 h-4 text-orange-500 ml-2 animate-pulse"
-                      title="AI Flagged"
-                    />
+                    /* FIX: Wrapped in a span with the title attribute */
+                    <span title="AI Flagged" className="flex">
+                      <AlertCircle className="w-4 h-4 text-orange-500 ml-2 animate-pulse" />
+                    </span>
                   )}
                 </div>
 
