@@ -1,15 +1,20 @@
-// // src/lib/db/prisma.ts
-// import { PrismaClient } from '@prisma/client';
-// import { Pool } from '@neondatabase/serverless';
-// import { PrismaNeon } from '@prisma/adapter-neon';
+import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 
-// // 1. Initialize the Neon connection pool using your environment variable
-// const neon = new Pool({ connectionString: process.env.DATABASE_URL! });
+const globalForPrisma = globalThis as unknown as {
+    prisma: PrismaClient | undefined;
+};
 
-// // 2. Wrap it in the Prisma Adapter
-// const adapter = new PrismaNeon(neon);
+// 1. Setup the connection pool for Neon
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
 
-// // 3. Instantiate the client with the adapter
-// const prisma = new PrismaClient({ adapter });
+// 2. Initialize the client with the adapter
+export const prisma =
+    globalForPrisma.prisma ??
+    new PrismaClient({ adapter });
 
-// export default prisma;
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+
+export default prisma;
