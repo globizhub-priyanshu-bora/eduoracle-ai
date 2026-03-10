@@ -11,6 +11,7 @@ function BattleQuizContent() {
   const searchParams = useSearchParams();
   const domain = searchParams.get("domain") || "current-affairs";
 
+  // 🚨 Updated to include the new Reasoning domain mapping
   const domainTitles: Record<string, string> = {
     civil: "Civil Engineering",
     electrical: "Electrical Engineering",
@@ -18,6 +19,7 @@ function BattleQuizContent() {
     electronics: "Electronics & Telecomm.",
     "current-affairs": "Recent Current Affairs",
   };
+  
   const displayTitle = domainTitles[domain] || "ISRO Scientist 'SC'";
 
   const quizDetails = {
@@ -35,6 +37,7 @@ function BattleQuizContent() {
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-50 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background Glows */}
       <div className="absolute top-[-10%] right-[-5%] w-72 h-72 bg-red-600/10 rounded-full blur-[100px] pointer-events-none" />
       <div className="absolute bottom-[-10%] left-[-5%] w-72 h-72 bg-orange-600/10 rounded-full blur-[100px] pointer-events-none" />
 
@@ -54,6 +57,7 @@ function BattleQuizContent() {
           </p>
         </div>
 
+        {/* Date Row */}
         <div className="grid grid-cols-2 border-b border-white/5">
           <div className="p-4 border-r border-white/5 bg-white/[0.02]">
             <div className="flex items-center gap-2 text-neutral-500 mb-1">
@@ -73,6 +77,7 @@ function BattleQuizContent() {
           </div>
         </div>
 
+        {/* Stats List */}
         <div className="p-6 space-y-4">
           <div className="space-y-3">
             <StatRow
@@ -93,6 +98,7 @@ function BattleQuizContent() {
             />
           </div>
 
+          {/* Quick Info Grid */}
           <div className="grid grid-cols-2 gap-3 mt-6">
             <div className="bg-white/5 p-3 rounded-xl border border-white/5 text-center">
               <span className="block text-2xl font-black text-orange-400">
@@ -122,6 +128,14 @@ function BattleQuizContent() {
               className="fill-current group-hover:translate-x-1 transition-transform"
             />
           </button>
+        </div>
+
+        {/* Footer info */}
+        <div className="bg-white/5 p-4 text-center border-t border-white/5">
+          <div className="flex items-center justify-center gap-2 text-neutral-500 text-[10px] font-medium">
+            <Info size={12} />
+            {quizDetails.department}
+          </div>
         </div>
       </motion.div>
     </div>
