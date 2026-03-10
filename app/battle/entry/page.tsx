@@ -10,13 +10,16 @@ export default function BattleQuizEntry() {
   const searchParams = useSearchParams();
   const domain = searchParams.get("domain") || "current-affairs";
 
+  // 🚨 Updated to include the new Reasoning domain mapping
   const domainTitles: Record<string, string> = {
     "civil": "Civil Engineering",
     "electrical": "Electrical Engineering",
     "mechanical": "Mechanical Engineering",
     "electronics": "Electronics & Telecomm.",
-    "current-affairs": "Recent Current Affairs"
+    "current-affairs": "Recent Current Affairs",
+    "reasoning-aptitude": "Reasoning & Aptitude"
   };
+  
   const displayTitle = domainTitles[domain] || "ISRO Scientist 'SC'";
 
   const quizDetails = {
@@ -25,19 +28,25 @@ export default function BattleQuizEntry() {
     startDate: "11 Mar, 2026",
     endDate: "14 Mar, 2026",
     attempts: 1,
-    totalScore: 500,
-    passingScore: 300,
-    questions: 5,
-    duration: "00:02",
+    totalScore: 100, // 10 questions * 10 marks
+    passingScore: 30,
+    questions: 10,
+    duration: "05:00", // Matches your 5-minute requirement
     department: "Department of Space & AI Research"
   };
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-50 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background Glows */}
       <div className="absolute top-[-10%] right-[-5%] w-72 h-72 bg-red-600/10 rounded-full blur-[100px] pointer-events-none" />
       <div className="absolute bottom-[-10%] left-[-5%] w-72 h-72 bg-orange-600/10 rounded-full blur-[100px] pointer-events-none" />
 
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-md w-full bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl shadow-2xl overflow-hidden z-10">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        className="max-w-md w-full bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl shadow-2xl overflow-hidden z-10"
+      >
+        {/* Header Section */}
         <div className="bg-gradient-to-r from-neutral-900 to-neutral-800 p-6 border-b border-white/10">
           <div className="flex items-center gap-2 text-orange-500 text-[10px] font-bold uppercase tracking-widest mb-2">
             <ShieldCheck size={14} />
@@ -47,6 +56,7 @@ export default function BattleQuizEntry() {
           <p className="text-neutral-400 text-xs mt-2 italic">Expiry Date: {quizDetails.expiryDate}</p>
         </div>
 
+        {/* Date Row */}
         <div className="grid grid-cols-2 border-b border-white/5">
           <div className="p-4 border-r border-white/5 bg-white/[0.02]">
             <div className="flex items-center gap-2 text-neutral-500 mb-1">
@@ -64,6 +74,7 @@ export default function BattleQuizEntry() {
           </div>
         </div>
 
+        {/* Stats List */}
         <div className="p-6 space-y-4">
           <div className="space-y-3">
             <StatRow icon={<Play size={16}/>} label="Attempt Count" value={quizDetails.attempts} />
@@ -71,6 +82,7 @@ export default function BattleQuizEntry() {
             <StatRow icon={<Target size={16} className="text-orange-500"/>} label="Passing Score" value={quizDetails.passingScore} highlight />
           </div>
 
+          {/* Quick Info Grid */}
           <div className="grid grid-cols-2 gap-3 mt-6">
             <div className="bg-white/5 p-3 rounded-xl border border-white/5 text-center">
               <span className="block text-2xl font-black text-orange-400">{quizDetails.questions}</span>
@@ -78,18 +90,27 @@ export default function BattleQuizEntry() {
             </div>
             <div className="bg-white/5 p-3 rounded-xl border border-white/5 text-center">
               <span className="block text-2xl font-black text-white">{quizDetails.duration}</span>
-              <span className="text-[9px] uppercase font-bold text-neutral-500 tracking-tighter">Hours</span>
+              <span className="text-[9px] uppercase font-bold text-neutral-500 tracking-tighter">Mins</span>
             </div>
           </div>
 
+          {/* Action Button */}
           <button 
-            // 🚨 Sends them to the Live Quiz with the domain! 🚨
+            // 🚨 Navigates to the Live Battle with the selected domain 🚨
             onClick={() => router.push(`/battle/live?domain=${domain}`)}
             className="w-full mt-4 py-4 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-xl transition-all active:scale-95 shadow-[0_0_20px_rgba(234,88,12,0.3)] flex items-center justify-center gap-2 group"
           >
             Start Battle Quiz
             <Play size={18} className="fill-current group-hover:translate-x-1 transition-transform" />
           </button>
+        </div>
+
+        {/* Footer info */}
+        <div className="bg-white/5 p-4 text-center border-t border-white/5">
+          <div className="flex items-center justify-center gap-2 text-neutral-500 text-[10px] font-medium">
+            <Info size={12} />
+            {quizDetails.department}
+          </div>
         </div>
       </motion.div>
     </div>
