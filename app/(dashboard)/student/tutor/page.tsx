@@ -6,7 +6,6 @@ import {
   Camera,
   UploadCloud,
   Sparkles,
-  Image as ImageIcon,
   CheckCircle2,
   Loader2,
   ChevronRight,
@@ -15,54 +14,39 @@ import {
   Target,
 } from "lucide-react";
 import Link from "next/link";
+import { analyzeVisionQueryAction } from "@/actions/student.actions";
 
 export default function VisionTutorPage() {
   const [image, setImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [solution, setSolution] = useState<any | null>(null);
 
-  // Simulated 3-Step Solution matching the PRD requirement
-  const mockSolution = {
-    identifiedTopic: "Effective Access Time (EAT) Calculation with TLB",
-    steps: [
-      {
-        title: "Identify Given Variables",
-        explanation:
-          "TLB Hit Ratio (α) = 80% (0.8), TLB Access Time (c) = 20ns, Main Memory Access Time (m) = 100ns.",
-      },
-      {
-        title: "Apply the EAT Formula",
-        explanation:
-          "EAT = α(c + m) + (1 - α)(c + 2m). The second part represents a TLB miss, requiring two memory accesses (one for page table, one for actual data).",
-      },
-      {
-        title: "Calculate Final Result",
-        explanation:
-          "EAT = 0.8(20 + 100) + 0.2(20 + 200) = 0.8(120) + 0.2(220) = 96 + 44 = 140ns.",
-      },
-    ],
-    nextStep:
-      "Review Virtual Memory translation mapping to avoid TLB miss penalties.",
-  };
-
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Create a local URL for the preview
       setImage(URL.createObjectURL(file));
       setSolution(null);
     }
   };
 
-  const analyzeImage = () => {
+  const analyzeImage = async () => {
     if (!image) return;
     setIsAnalyzing(true);
 
-    // Simulating the 4-Second Magic Trick (Promise.race fallback delay)
-    setTimeout(() => {
+    try {
+      // We pass a dummy name since we aren't uploading to a real bucket for the MVP
+      const res = await analyzeVisionQueryAction("uploaded_diagram.jpg");
+      
+      if (res.success && res.data) {
+        setSolution(res.data);
+      } else {
+        alert("Failed to analyze image.");
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
       setIsAnalyzing(false);
-      setSolution(mockSolution);
-    }, 2500); // 2.5s feels natural for the UI demo
+    }
   };
 
   return (

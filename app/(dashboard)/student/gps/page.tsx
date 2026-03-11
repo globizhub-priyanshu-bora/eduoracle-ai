@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Map,
@@ -12,8 +12,15 @@ import {
   Trophy,
   BrainCircuit,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
+
+// IMPORT SERVER ACTIONS
+import {
+  getStudentStateAction,
+  updateStudentStateAction,
+} from "@/actions/student.actions";
 
 // Hardcoded GPS Timeline expanded for the full-page view (ISRO SC Context)
 const expandedGPSData = [
@@ -112,24 +119,71 @@ const itemVariants = {
 
 export default function AcademicGPSPage() {
   const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set());
+  const [isLoading, setIsLoading] = useState(true);
+
+  // 1. FETCH INITIAL STATE FROM DATABASE
+  useEffect(() => {
+    const loadState = async () => {
+      try {
+        const res = await getStudentStateAction();
+        if (res.success && res.data) {
+          // Initialize our Set with the saved array from the database
+          setCompletedTasks(new Set(res.data.completedGpsTasks));
+        }
+      } catch (error) {
+        console.error("Failed to load GPS state:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadState();
+  }, []);
 
   // Calculate total progress
   const totalTasks = expandedGPSData.reduce(
     (acc, day) => acc + day.tasks.length,
     0,
   );
-  const progressPercentage = Math.round(
-    (completedTasks.size / totalTasks) * 100,
-  );
+  const progressPercentage =
+    totalTasks > 0 ? Math.round((completedTasks.size / totalTasks) * 100) : 0;
 
-  const toggleTask = (taskName: string) => {
+  // 2. OPTIMISTIC UI TOGGLE & DATABASE SYNC
+  const toggleTask = async (taskName: string) => {
+    let newCompletedTasksArray: string[] = [];
+
+    // Instantly update the UI without waiting for the server
     setCompletedTasks((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(taskName)) newSet.delete(taskName);
-      else newSet.add(taskName);
+      if (newSet.has(taskName)) {
+        newSet.delete(taskName);
+      } else {
+        newSet.add(taskName);
+      }
+
+      newCompletedTasksArray = Array.from(newSet);
       return newSet;
     });
+
+    // Silently sync the new state to the Neon database in the background
+    try {
+      await updateStudentStateAction({
+        completedGpsTasks: newCompletedTasksArray,
+      });
+    } catch (error) {
+      console.error("Failed to sync GPS task state", error);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center p-6 text-neutral-50">
+        <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />
+        <h2 className="text-xl font-medium animate-pulse text-blue-400">
+          Loading GPS Trajectory...
+        </h2>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white p-6 md:p-10 font-sans overflow-x-hidden relative">
@@ -305,7 +359,6 @@ export default function AcademicGPSPage() {
                 and updates the Concept Graph.
               </p>
 
-              {/* Call to action linking back to the Vision Tutor or Main Dashboard */}
               <div className="flex gap-4">
                 <Link
                   href="/student/tutor"

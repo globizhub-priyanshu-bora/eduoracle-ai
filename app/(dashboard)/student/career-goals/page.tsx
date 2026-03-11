@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Briefcase,
@@ -18,11 +18,15 @@ import {
   X,
   Search,
   Sparkles,
+  Loader2,
+  Database,
+  Building2,
 } from "lucide-react";
 import Link from "next/link";
+import { getCareerTrajectoryAction, simulateCareerTrajectoryAction } from "@/actions/student.actions";
 
-// Expanding the Master API 'careerEngine' string array into visual objects
-const mockCareerData = {
+// 1. Updated Mock Data (Removed raw JSX, added industry tags)
+const mockFallbackData = {
   primaryGoal: {
     title: "ISRO Scientist 'SC' (Computer Science)",
     alignmentScore: 94,
@@ -34,13 +38,13 @@ const mockCareerData = {
     {
       title: "Cloud Solutions Architect",
       alignmentScore: 82,
-      icon: <Globe className="w-5 h-5 text-blue-400" />,
+      industry: "Enterprise Tech & SaaS",
       gap: "Requires deeper Distributed Systems focus.",
     },
     {
       title: "Systems Engineer",
       alignmentScore: 76,
-      icon: <Cpu className="w-5 h-5 text-emerald-400" />,
+      industry: "AI & Machine Learning",
       gap: "Requires Low-Level Hardware Architecture.",
     },
   ],
@@ -61,12 +65,93 @@ const itemVariants = {
 };
 
 export default function CareerGoalsPage() {
-  const [data] = useState(mockCareerData);
+  const [data, setData] = useState(mockFallbackData);
+  const [isLoading, setIsLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const [newGoal, setNewGoal] = useState({
+    targetRole: "",
+    targetIndustry: "Space & Remote Sensing (GIS)",
+    timeframe: "Next 6 Months"
+  });
+
+  // Fetch data on page load
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const res = await getCareerTrajectoryAction();
+        if (res.success && res.data) {
+          setData({
+            primaryGoal: {
+              ...mockFallbackData.primaryGoal,
+              ...res.data.primaryGoal,
+            },
+            alternativeEngines: res.data.alternativeEngines.length > 0 
+              ? res.data.alternativeEngines 
+              : mockFallbackData.alternativeEngines
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch career data", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  // Handle Simulation Submission
+  const handleSimulate = async () => {
+    if (!newGoal.targetRole) {
+      alert("Please enter a Target Role.");
+      return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+      const res = await simulateCareerTrajectoryAction(newGoal);
+      if (res.success) {
+        setShowAddModal(false);
+        setNewGoal({ ...newGoal, targetRole: "" }); 
+        
+        // Refetch the data so the new simulated career pops up instantly!
+        const updated = await getCareerTrajectoryAction();
+        if (updated.success && updated.data) {
+           setData((prev) => ({...prev, alternativeEngines: updated.data.alternativeEngines}));
+        }
+      } else {
+        alert("Failed to start simulation. Please try again.");
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // 2. Dynamic Icon Renderer Function
+  const renderIndustryIcon = (industry: string) => {
+    switch (industry) {
+      case "Space & Remote Sensing (GIS)": return <Globe className="w-5 h-5 text-blue-400" />;
+      case "Enterprise Tech & SaaS": return <Database className="w-5 h-5 text-purple-400" />;
+      case "FinTech / Web3": return <Building2 className="w-5 h-5 text-emerald-400" />;
+      case "AI & Machine Learning": return <Cpu className="w-5 h-5 text-orange-400" />;
+      default: return <Briefcase className="w-5 h-5 text-blue-400" />;
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center p-6 text-neutral-50">
+        <Loader2 className="w-12 h-12 text-purple-500 animate-spin mb-4" />
+        <h2 className="text-xl font-medium animate-pulse text-purple-400">Loading Career Engine...</h2>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white p-4 sm:p-6 md:p-10 font-sans overflow-x-hidden relative">
-      {/* Mobile-Optimized Header */}
       <motion.header
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -91,7 +176,6 @@ export default function CareerGoalsPage() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-            {/* Add New Career Goal Button */}
             <button
               onClick={() => setShowAddModal(true)}
               className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 px-5 py-3 md:py-4 rounded-2xl text-sm font-bold transition-all active:scale-95"
@@ -152,13 +236,13 @@ export default function CareerGoalsPage() {
                 Cognitive Milestones
               </h3>
               <div className="space-y-4">
-                {data.primaryGoal.lockedSkills.map((skill, idx) => (
+                {data.primaryGoal.lockedSkills.map((skill: string, idx: number) => (
                   <div key={idx} className="flex items-center justify-between">
                     <span className="text-sm text-neutral-300">{skill}</span>
                     <ShieldCheck className="w-4 h-4 text-emerald-400" />
                   </div>
                 ))}
-                {data.primaryGoal.pendingSkills.map((skill, idx) => (
+                {data.primaryGoal.pendingSkills.map((skill: string, idx: number) => (
                   <div
                     key={idx}
                     className="flex items-center justify-between opacity-50"
@@ -186,7 +270,7 @@ export default function CareerGoalsPage() {
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            {data.alternativeEngines.map((alt, idx) => (
+            {data.alternativeEngines.map((alt: any, idx: number) => (
               <div
                 key={idx}
                 className="bg-white/5 border border-white/10 rounded-2xl p-5 md:p-6 hover:border-white/20 transition-all group"
@@ -194,7 +278,8 @@ export default function CareerGoalsPage() {
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-3">
                     <div className="p-3 bg-black/50 rounded-xl border border-white/5 group-hover:scale-110 transition-transform">
-                      {alt.icon}
+                      {/* 3. Uses the dynamic renderer instead of raw JSX */}
+                      {renderIndustryIcon(alt.industry || "Enterprise Tech & SaaS")}
                     </div>
                     <div>
                       <h3 className="text-base md:text-lg font-bold text-white">
@@ -282,6 +367,8 @@ export default function CareerGoalsPage() {
                   <input
                     type="text"
                     placeholder="e.g., Go (Golang) Backend Engineer"
+                    value={newGoal.targetRole}
+                    onChange={(e) => setNewGoal({ ...newGoal, targetRole: e.target.value })}
                     className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm md:text-base text-white focus:outline-none focus:border-blue-500/50 transition-colors placeholder:text-neutral-600"
                   />
                 </div>
@@ -291,7 +378,11 @@ export default function CareerGoalsPage() {
                     <label className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
                       Industry Domain
                     </label>
-                    <select className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm md:text-base text-white focus:outline-none focus:border-blue-500/50 transition-colors appearance-none">
+                    <select 
+                      value={newGoal.targetIndustry}
+                      onChange={(e) => setNewGoal({ ...newGoal, targetIndustry: e.target.value })}
+                      className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm md:text-base text-white focus:outline-none focus:border-blue-500/50 transition-colors appearance-none"
+                    >
                       <option>Space & Remote Sensing (GIS)</option>
                       <option>Enterprise Tech & SaaS</option>
                       <option>FinTech / Web3</option>
@@ -302,7 +393,11 @@ export default function CareerGoalsPage() {
                     <label className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
                       Target Timeframe
                     </label>
-                    <select className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm md:text-base text-white focus:outline-none focus:border-blue-500/50 transition-colors appearance-none">
+                    <select 
+                      value={newGoal.timeframe}
+                      onChange={(e) => setNewGoal({ ...newGoal, timeframe: e.target.value })}
+                      className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm md:text-base text-white focus:outline-none focus:border-blue-500/50 transition-colors appearance-none"
+                    >
                       <option>Next 6 Months</option>
                       <option>1 Year</option>
                       <option>2+ Years</option>
@@ -330,11 +425,16 @@ export default function CareerGoalsPage() {
               {/* Modal Footer / Submit */}
               <div className="p-5 md:p-6 border-t border-white/10 bg-black/40 shrink-0">
                 <button
-                  onClick={() => setShowAddModal(false)}
-                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold py-4 rounded-xl transition-all shadow-[0_0_20px_rgba(59,130,246,0.2)] active:scale-[0.98]"
+                  onClick={handleSimulate}
+                  disabled={isSubmitting}
+                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold py-4 rounded-xl transition-all shadow-[0_0_20px_rgba(59,130,246,0.2)] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <BrainCircuit className="w-5 h-5" />
-                  Simulate Compatibility
+                  {isSubmitting ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <BrainCircuit className="w-5 h-5" />
+                  )}
+                  {isSubmitting ? "Simulating Engine..." : "Simulate Compatibility"}
                 </button>
               </div>
             </motion.div>

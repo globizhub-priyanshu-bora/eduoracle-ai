@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -15,8 +15,12 @@ import {
   TrendingUp,
   Zap,
   X,
+  Loader2
 } from "lucide-react";
 import ConceptGraph from "@/components/graph/ConceptGraph";
+
+// IMPORT SERVER ACTIONS
+import { getStudentStateAction, updateStudentStateAction } from "@/actions/student.actions";
 
 const mockDashboardData = {
   studentInsights: {
@@ -73,6 +77,40 @@ export default function StudentDashboard() {
   const [studyHours, setStudyHours] = useState(3);
   const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set());
   const [showGraph, setShowGraph] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // 1. FETCH INITIAL STATE ON LOAD
+  useEffect(() => {
+    const loadState = async () => {
+      try {
+        const res = await getStudentStateAction();
+        if (res.success && res.data) {
+          setStudyHours(res.data.currentStudyHours);
+          setCompletedTasks(new Set(res.data.completedGpsTasks));
+        }
+      } catch (error) {
+        console.error("Failed to load dashboard state", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadState();
+  }, []);
+
+  // 2. DEBOUNCED DB SYNC FOR THE SLIDER
+  useEffect(() => {
+    if (isLoading) return; // Prevent saving during the initial fetch
+
+    const timer = setTimeout(async () => {
+      try {
+        await updateStudentStateAction({ currentStudyHours: studyHours });
+      } catch (error) {
+        console.error("Failed to sync study hours", error);
+      }
+    }, 500); // Waits 500ms after user stops dragging to save
+
+    return () => clearTimeout(timer); // Cleanup if they keep dragging
+  }, [studyHours, isLoading]);
 
   const simulatedProbability = Math.min(
     99,
@@ -104,14 +142,33 @@ export default function StudentDashboard() {
 
   const status = getProbabilityStatus();
 
-  const toggleTask = (taskName: string) => {
+  // 3. OPTIMISTIC UI TOGGLE FOR GPS TASKS
+  const toggleTask = async (taskName: string) => {
+    let newCompletedTasksArray: string[] = [];
+
     setCompletedTasks((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(taskName)) newSet.delete(taskName);
       else newSet.add(taskName);
+      newCompletedTasksArray = Array.from(newSet);
       return newSet;
     });
+
+    try {
+      await updateStudentStateAction({ completedGpsTasks: newCompletedTasksArray });
+    } catch (error) {
+      console.error("Failed to sync GPS task state", error);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center p-6 text-neutral-50">
+        <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />
+        <h2 className="text-xl font-medium animate-pulse text-blue-400">Syncing AI Diagnostic...</h2>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white p-4 sm:p-6 md:p-10 font-sans overflow-x-hidden relative">
@@ -340,7 +397,7 @@ export default function StudentDashboard() {
             <div className="grid grid-cols-2 gap-3 md:gap-4">
               <Link
                 href="/student/tutor"
-                className="flex flex-col items-center justify-center gap-2 md:gap-3 p-4 md:p-6 bg-white/5 border border-white/10 rounded-xl text-white"
+                className="flex flex-col items-center justify-center gap-2 md:gap-3 p-4 md:p-6 bg-white/5 border border-white/10 rounded-xl text-white hover:bg-white/10 transition-colors"
               >
                 <Camera className="w-5 h-5 md:w-6 md:h-6 text-blue-400" />
                 <span className="text-xs md:text-sm font-medium text-center">
@@ -349,7 +406,7 @@ export default function StudentDashboard() {
               </Link>
               <button
                 onClick={() => setShowGraph(true)}
-                className="flex flex-col items-center justify-center gap-2 md:gap-3 p-4 md:p-6 bg-white/5 border border-white/10 rounded-xl text-white"
+                className="flex flex-col items-center justify-center gap-2 md:gap-3 p-4 md:p-6 bg-white/5 border border-white/10 rounded-xl text-white hover:bg-white/10 transition-colors"
               >
                 <Brain className="w-5 h-5 md:w-6 md:h-6 text-purple-400" />
                 <span className="text-xs md:text-sm font-medium text-center">
@@ -385,12 +442,11 @@ export default function StudentDashboard() {
                 </div>
                 <button
                   onClick={() => setShowGraph(false)}
-                  className="p-2 bg-white/10 hover:bg-red-500/20 text-white rounded-full"
+                  className="p-2 bg-white/10 hover:bg-red-500/20 text-white rounded-full transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              {/* Force height constraint on mobile so the graph is zoomable/pannable without scrolling the whole page */}
               <div className="w-full h-[50vh] md:h-[600px] overflow-hidden">
                 <ConceptGraph />
               </div>
