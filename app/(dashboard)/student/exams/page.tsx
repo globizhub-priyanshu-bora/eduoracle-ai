@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Brain,
@@ -21,10 +21,14 @@ import {
   Award,
   Building2,
   Landmark,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 
-// Expanded hardcoded predictive exam data
+// 1. IMPORT YOUR SERVER ACTIONS
+import { syncExamAction, getStudentExamsAction } from "@/actions/student.actions";
+
+// Expanded hardcoded predictive exam data (Used as fallback/initial state)
 const mockExamsData = {
   readinessScore: 78,
   upcomingMocks: [
@@ -51,19 +55,7 @@ const mockExamsData = {
       targetGoal: "Score > 85%",
       syllabusTags: ["Paging", "Segmentation", "TLB"],
       icon: <Brain className="w-3.5 h-3.5" />,
-    },
-    {
-      id: "mock-3",
-      title: "TCS Ninja - Placement Drive",
-      type: "Private Enterprise",
-      date: "Dec 02, 2026",
-      duration: "90 mins",
-      aiRecommendation: "Start Aptitude routine next week",
-      locked: true,
-      targetGoal: "Clear Cutoff",
-      syllabusTags: ["Aptitude", "Core CS", "Coding"],
-      icon: <Building2 className="w-3.5 h-3.5" />,
-    },
+    }
   ],
   pastExams: [
     {
@@ -102,15 +94,116 @@ const itemVariants = {
 };
 
 export default function PredictiveExamsPage() {
-  const [data] = useState(mockExamsData);
+  // 2. NEW STATE MANAGEMENT
+  const [data, setData] = useState(mockExamsData);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Modals
   const [showAddModal, setShowAddModal] = useState(false);
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [selectedExamTitle, setSelectedExamTitle] = useState("");
+
+  // Sync Exam Form State
+  const [newExam, setNewExam] = useState({
+    title: "",
+    type: "Govt. (Central/State)",
+    date: "",
+    context: "ISRO SC Syllabus"
+  });
+
+  // 3. FETCH DATA FROM DATABASE ON LOAD
+  useEffect(() => {
+    const fetchExams = async () => {
+      try {
+        const res = await getStudentExamsAction();
+        if (res.success && res.data && res.data.length > 0) {
+          
+          // Map DB exams to our UI structure
+          const dbExams = res.data.map((exam: any) => ({
+            id: exam.id,
+            title: exam.title,
+            type: exam.type,
+            date: exam.date ? new Date(exam.date).toLocaleDateString() : "TBD",
+            duration: exam.duration || "N/A",
+            aiRecommendation: exam.aiRecommendation,
+            locked: false, // Defaulting new synced exams to unlocked for the demo
+            targetGoal: exam.targetGoal,
+            syllabusTags: exam.syllabusTags,
+            icon: exam.type.includes("Govt") ? <Landmark className="w-3.5 h-3.5" /> : <Building2 className="w-3.5 h-3.5" />
+          }));
+
+          // Merge DB exams with our hardcoded mocks so it looks populated
+          setData(prev => ({
+            ...prev,
+            upcomingMocks: [...dbExams, ...prev.upcomingMocks]
+          }));
+        }
+      } catch (error) {
+        console.error("Failed to fetch exams", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchExams();
+  }, []);
+
+  // 4. HANDLE SYNC EXAM SUBMISSION
+  const handleSyncExam = async () => {
+    if (!newExam.title) return alert("Please enter an exam title");
+    
+    setIsSubmitting(true);
+    try {
+      const result = await syncExamAction(newExam);
+
+      if (result.success && result.exam) {
+        setShowAddModal(false);
+        setNewExam({ title: "", type: "Govt. (Central/State)", date: "", context: "ISRO SC Syllabus" }); // Reset form
+        
+        // Optimistically add the new exam to the UI without reloading
+        const newlyCreatedExam = {
+            id: result.exam.id,
+            title: result.exam.title,
+            type: result.exam.type,
+            date: result.exam.date ? new Date(result.exam.date).toLocaleDateString() : "TBD",
+            duration: "TBD",
+            aiRecommendation: result.exam.aiRecommendation || "Analyzing...",
+            locked: false,
+            targetGoal: result.exam.targetGoal || "Pending",
+            syllabusTags: result.exam.syllabusTags,
+            icon: result.exam.type.includes("Govt") ? <Landmark className="w-3.5 h-3.5" /> : <Building2 className="w-3.5 h-3.5" />
+        };
+
+        setData(prev => ({
+            ...prev,
+            upcomingMocks: [newlyCreatedExam, ...prev.upcomingMocks]
+        }));
+
+        alert("Exam successfully synced to the AI Engine!");
+      } else {
+        alert("Failed to sync exam.");
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const openGoalModal = (title: string) => {
     setSelectedExamTitle(title);
     setShowGoalModal(true);
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center p-6 text-neutral-50">
+        <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />
+        <h2 className="text-xl font-medium animate-pulse text-blue-400">Loading Assessment Engine...</h2>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white p-4 sm:p-6 md:p-10 font-sans overflow-x-hidden relative">
@@ -379,6 +472,8 @@ export default function PredictiveExamsPage() {
                   <input
                     type="text"
                     placeholder="e.g., University Mid-Sem OS"
+                    value={newExam.title}
+                    onChange={(e) => setNewExam({...newExam, title: e.target.value})}
                     className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm md:text-base text-white focus:outline-none focus:border-blue-500/50 transition-colors placeholder:text-neutral-600"
                   />
                 </div>
@@ -388,7 +483,11 @@ export default function PredictiveExamsPage() {
                     <label className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
                       Type
                     </label>
-                    <select className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm md:text-base text-white focus:outline-none focus:border-blue-500/50 transition-colors appearance-none">
+                    <select 
+                      value={newExam.type}
+                      onChange={(e) => setNewExam({...newExam, type: e.target.value})}
+                      className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm md:text-base text-white focus:outline-none focus:border-blue-500/50 transition-colors appearance-none"
+                    >
                       <option>Govt. (Central/State)</option>
                       <option>Private Enterprise</option>
                       <option>University Standard</option>
@@ -400,6 +499,8 @@ export default function PredictiveExamsPage() {
                     </label>
                     <input
                       type="date"
+                      value={newExam.date}
+                      onChange={(e) => setNewExam({...newExam, date: e.target.value})}
                       className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm md:text-base text-white focus:outline-none focus:border-blue-500/50 transition-colors [color-scheme:dark]"
                     />
                   </div>
@@ -430,10 +531,12 @@ export default function PredictiveExamsPage() {
 
               <div className="p-5 md:p-6 border-t border-white/10 bg-black/40 shrink-0">
                 <button
-                  onClick={() => setShowAddModal(false)}
-                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold py-4 rounded-xl transition-all shadow-[0_0_20px_rgba(59,130,246,0.2)] active:scale-[0.98]"
+                  onClick={handleSyncExam}
+                  disabled={isSubmitting}
+                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold py-4 rounded-xl transition-all shadow-[0_0_20px_rgba(59,130,246,0.2)] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Brain className="w-5 h-5" /> Initialize Predictive Sync
+                  {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Brain className="w-5 h-5" />}
+                  {isSubmitting ? "Syncing..." : "Initialize Predictive Sync"}
                 </button>
               </div>
             </motion.div>
