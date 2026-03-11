@@ -25,7 +25,7 @@ function BattleQuizContent() {
   const quizDetails = {
     title: `${displayTitle} Battle`,
     expiryDate: "23 Mar, 2026",
-    startDate: "11 Mar, 2026",
+    startDate: "12 Mar, 2026",
     endDate: "14 Mar, 2026",
     attempts: 1,
     totalScore: 100, // 10 questions * 10 marks
