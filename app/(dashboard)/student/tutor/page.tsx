@@ -18,32 +18,46 @@ import { analyzeVisionQueryAction } from "@/actions/student.actions";
 
 export default function VisionTutorPage() {
   const [image, setImage] = useState<string | null>(null);
+  // NEW STATE: Holds the actual image data to send to Gemini
+  const [fileData, setFileData] = useState<{ base64: string; mimeType: string } | null>(null); 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [solution, setSolution] = useState<any | null>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Set UI preview
       setImage(URL.createObjectURL(file));
       setSolution(null);
+
+      // Convert to Base64 for the Gemini API
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFileData({
+          base64: reader.result as string,
+          mimeType: file.type,
+        });
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   const analyzeImage = async () => {
-    if (!image) return;
+    if (!fileData) return;
     setIsAnalyzing(true);
 
     try {
-      // We pass a dummy name since we aren't uploading to a real bucket for the MVP
-      const res = await analyzeVisionQueryAction("uploaded_diagram.jpg");
+      // Pass the real image data and mime type to the Server Action!
+      const res = await analyzeVisionQueryAction(fileData.base64, fileData.mimeType);
       
       if (res.success && res.data) {
         setSolution(res.data);
       } else {
-        alert("Failed to analyze image.");
+        alert("Failed to analyze image. Make sure your Gemini API key is correct and active.");
       }
     } catch (error) {
       console.error(error);
+      alert("Something went wrong during analysis.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -77,7 +91,7 @@ export default function VisionTutorPage() {
         </div>
       </motion.header>
 
-      {/* Main Layout: Stacks on mobile, side-by-side on desktop */}
+      {/* Main Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10">
         {/* Left Column: Upload & Preview Area */}
         <motion.div
@@ -85,7 +99,6 @@ export default function VisionTutorPage() {
           animate={{ opacity: 1, scale: 1 }}
           className="flex flex-col gap-4"
         >
-          {/* The Upload Box */}
           <div
             className={`relative w-full aspect-[4/3] md:aspect-video rounded-3xl border-2 border-dashed flex flex-col items-center justify-center overflow-hidden transition-all duration-300
             ${image ? "border-blue-500/50 bg-black/50" : "border-white/20 bg-white/5 hover:bg-white/10 hover:border-white/40"}`}
@@ -110,7 +123,7 @@ export default function VisionTutorPage() {
                 {!isAnalyzing && !solution && (
                   <div className="absolute bottom-4 right-4 flex gap-2">
                     <button
-                      onClick={() => setImage(null)}
+                      onClick={() => { setImage(null); setFileData(null); setSolution(null); }}
                       className="p-3 bg-neutral-900/80 backdrop-blur-md border border-white/10 rounded-xl hover:bg-red-500/20 hover:text-red-400 transition-colors"
                     >
                       Reset
@@ -127,7 +140,7 @@ export default function VisionTutorPage() {
                   Tap to Upload or Take Photo
                 </h3>
                 <p className="text-sm text-neutral-400 max-w-xs">
-                  Supports JPG, PNG, and HEIC files up to 10MB.
+                  Supports JPG, PNG, and HEIC files.
                 </p>
                 <input
                   type="file"
@@ -140,7 +153,6 @@ export default function VisionTutorPage() {
             )}
           </div>
 
-          {/* Mobile-Friendly Action Button */}
           <AnimatePresence>
             {image && !solution && !isAnalyzing && (
               <motion.button
@@ -151,7 +163,7 @@ export default function VisionTutorPage() {
                 className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-2xl font-bold text-lg shadow-[0_0_20px_rgba(59,130,246,0.3)] flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
               >
                 <Sparkles className="w-5 h-5" />
-                Generate 3-Step Solution
+                Generate AI Solution
               </motion.button>
             )}
           </AnimatePresence>
