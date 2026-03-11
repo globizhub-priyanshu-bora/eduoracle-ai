@@ -55,7 +55,7 @@ export default function HomePage() {
         {/* Summit Branding */}
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs sm:text-sm text-neutral-300 mb-2 md:mb-4 backdrop-blur-md">
           <Presentation className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400" />
-          <span>Live Demo: GCU AI Summit</span>
+          <span>Live Demo</span>
         </div>
 
         {/* Brand Identity */}
@@ -104,7 +104,7 @@ export default function HomePage() {
         <div className="pt-8 md:pt-12">
           <button
             onClick={() => router.push("/battle")}
-            className="text-xs sm:text-sm text-neutral-500 hover:text-neutral-300 flex items-center justify-center gap-2 mx-auto transition-colors p-2">
+            className="text-sm  sm:text-sm text-neutral-900 p-5 bg-blue-400 rounded-4xl hover:bg-blue-950 hover:text-neutral-300 flex items-center justify-center gap-2 mx-auto transition-colors p-2">
             <Swords className="w-4 h-4" />
             Join Live Quiz Battle (Audience)
           </button>
