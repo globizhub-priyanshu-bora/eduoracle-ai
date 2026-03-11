@@ -30,7 +30,7 @@ export default function DashboardLayout({
       <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-neutral-950/50 backdrop-blur-xl border-b border-white/5 z-40 flex items-center justify-between px-6">
         <div className="flex items-center">
           <BrainCircuit className="w-6 h-6 text-blue-500 mr-2" />
-          <span className="font-bold text-white tracking-tight">EduOracle</span>
+          <span className="font-bold text-white tracking-tight">EduGlobiz</span>
         </div>
         <button
           onClick={() => setIsMobileMenuOpen(true)}
@@ -77,9 +77,7 @@ export default function DashboardLayout({
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/5 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-600/5 rounded-full blur-[120px] pointer-events-none" />
 
-        <div className="relative z-10 w-full min-h-full">
-          {children}
-        </div>
+        <div className="relative z-10 w-full min-h-full">{children}</div>
       </main>
     </div>
   );

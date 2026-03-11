@@ -17,7 +17,7 @@ export async function GET(req: Request) {
     if (process.env.GEMINI_API_KEY) {
       try {
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        
+
         // Dynamic Prompt based on domain
         const prompt = `Generate exactly 5 highly rigorous, multiple-choice questions for the domain of ${domain.toUpperCase().replace('-', ' ')}. 
         Target difficulty: ISRO Scientist 'SC' level examination.
@@ -33,12 +33,12 @@ export async function GET(req: Request) {
 
         let jsonString = aiResponse.response.text().trim();
         jsonString = jsonString.replace(/^```json/, '').replace(/```$/, '').trim();
-        
+
         const questions = JSON.parse(jsonString);
         return NextResponse.json({ questions });
 
       } catch (aiError) {
-        console.warn(`[EduOracle] Gemini failed or timed out for ${domain}. Switching to secure fallbacks.`);
+        console.warn(`[EduGlobiz] Gemini failed or timed out for ${domain}. Switching to secure fallbacks.`);
       }
     }
 

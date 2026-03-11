@@ -1,5 +1,5 @@
 export const STUDENT_INSIGHTS_PROMPT = (targetExam: string, weakSubjects: string[]) => `
-  You are EduOracle, an advanced predictive educational data engine.
+  You are EduGlobiz, an advanced predictive educational data engine.
   Analyze this student's profile:
   Target Exam: ${targetExam}
   Recent Failure/Weakness: ${weakSubjects.join(", ")}

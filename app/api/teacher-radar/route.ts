@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import prisma from '@/lib/db/prisma'; 
+import prisma from '@/lib/db/prisma';
 
 const FALLBACK_RADAR = {
   students: [
@@ -27,19 +27,19 @@ export async function GET() {
     let existingRoster = null;
     try {
       existingRoster = await prisma.classRoster.findFirst();
-      
+
       if (existingRoster && existingRoster.atRiskStudents) {
-        console.log("EduOracle: Serving cached Radar data from Neon DB.");
+        console.log("EduGlobiz: Serving cached Radar data from Neon DB.");
         return NextResponse.json(existingRoster.atRiskStudents, { status: 200 });
       }
     } catch (dbCacheErr) {
-      console.warn("EduOracle [DB Warning]: Could not read cache, proceeding to AI generation.");
+      console.warn("EduGlobiz [DB Warning]: Could not read cache, proceeding to AI generation.");
     }
 
     // 2. GENERATE NEW DATA (If cache is empty or DB failed)
-    console.log("EduOracle: Generating fresh AI data...");
+    console.log("EduGlobiz: Generating fresh AI data...");
     const prompt = `
-      You are EduOracle. Generate a cohort analysis for 10 demo students studying for the ISRO Scientist 'SC' (Computer Science) exam.
+      You are EduGlobiz. Generate a cohort analysis for 10 demo students studying for the ISRO Scientist 'SC' (Computer Science) exam.
       Identify exactly 3 "Silent Strugglers" (students with passing grades today who are predicted to fail by finals).
       
       Return ONLY a valid JSON object matching this structure:
@@ -59,13 +59,13 @@ export async function GET() {
       .generateContent(prompt)
       .then((res) => JSON.parse(res.response.text()))
       .catch((err) => {
-        console.error("EduOracle [AI]: Google API Rejected Request:", err.message);
-        return FALLBACK_RADAR; 
+        console.error("EduGlobiz [AI]: Google API Rejected Request:", err.message);
+        return FALLBACK_RADAR;
       });
 
     const timeoutPromise = new Promise((resolve) => {
       setTimeout(() => {
-        console.warn("EduOracle: Gemini API timeout hit. Serving fallback.");
+        console.warn("EduGlobiz: Gemini API timeout hit. Serving fallback.");
         resolve(FALLBACK_RADAR);
       }, 4000);
     });
@@ -79,7 +79,7 @@ export async function GET() {
         if (existingRoster) {
           await prisma.classRoster.update({
             where: { id: existingRoster.id },
-            data: { atRiskStudents: finalData as any }, 
+            data: { atRiskStudents: finalData as any },
           });
         } else {
           // Demo failsafe: Create the relational chain for the next reload
@@ -94,7 +94,7 @@ export async function GET() {
                     create: {
                       className: "CS-401 Advanced Operating Systems",
                       studentCount: 10,
-                      atRiskStudents: finalData as any, 
+                      atRiskStudents: finalData as any,
                     },
                   },
                 },
@@ -103,7 +103,7 @@ export async function GET() {
           });
         }
       } catch (dbWriteError: any) {
-        console.warn("EduOracle [DB]: Could not save AI data to DB, but returning it to UI anyway.", dbWriteError.message);
+        console.warn("EduGlobiz [DB]: Could not save AI data to DB, but returning it to UI anyway.", dbWriteError.message);
       }
     }
 
@@ -111,7 +111,7 @@ export async function GET() {
     return NextResponse.json(finalData, { status: 200 });
 
   } catch (error) {
-    console.error("EduOracle [Fatal]: Unexpected Radar Error:", error);
+    console.error("EduGlobiz [Fatal]: Unexpected Radar Error:", error);
     return NextResponse.json(FALLBACK_RADAR, { status: 200 });
   }
 }

@@ -40,7 +40,8 @@ export default function LoginPage() {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-md z-10">
+        className="w-full max-w-md z-10"
+      >
         {/* Card Container */}
         <div className="bg-neutral-900/50 border border-white/10 p-8 rounded-2xl backdrop-blur-xl shadow-2xl">
           {/* Header */}
@@ -49,7 +50,7 @@ export default function LoginPage() {
               <BrainCircuit className="w-6 h-6 text-blue-400" />
             </div>
             <h1 className="text-2xl font-bold text-white tracking-tight">
-              Welcome to EduOracle
+              Welcome to EduGlobiz
             </h1>
             <p className="text-neutral-400 text-sm mt-2 text-center">
               Enter your credentials to access the predictive learning engine.
@@ -80,7 +81,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="block w-full pl-10 pr-3 py-3 border border-white/10 rounded-xl bg-black/50 text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all sm:text-sm"
-                  placeholder="demo@eduoracle.ai"
+                  placeholder="demo@edugobiz.ai"
                   required
                 />
               </div>
@@ -110,7 +111,8 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-black bg-white hover:bg-neutral-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-neutral-900 transition-all disabled:opacity-70 mt-6">
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-black bg-white hover:bg-neutral-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-neutral-900 transition-all disabled:opacity-70 mt-6"
+            >
               {isLoading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -129,7 +131,8 @@ export default function LoginPage() {
           <div className="mt-8 pt-6 border-t border-white/10 flex flex-col items-center gap-3">
             <button
               onClick={() => router.push("/teacher")}
-              className="text-xs text-neutral-400 hover:text-white transition-colors">
+              className="text-xs text-neutral-400 hover:text-white transition-colors"
+            >
               Are you an educator? Login here.
             </button>
           </div>

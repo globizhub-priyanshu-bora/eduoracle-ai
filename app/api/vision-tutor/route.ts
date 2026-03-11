@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     // 1. Extract the image from the FormData payload
     const formData = await request.formData();
     const file = formData.get('image') as File;
-    
+
     if (!file) {
       return NextResponse.json({ error: "No image uploaded." }, { status: 400 });
     }
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     // 2. Convert the file to Base64 for the Gemini API
     const arrayBuffer = await file.arrayBuffer();
     const base64Data = Buffer.from(arrayBuffer).toString('base64');
-    
+
     const imagePart = {
       inlineData: {
         data: base64Data,
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     `;
 
     // Using gemini-1.5-pro for advanced vision and reasoning tasks 
-    const model = genAI.getGenerativeModel({ 
+    const model = genAI.getGenerativeModel({
       model: "gemini-1.5-pro",
       generationConfig: { responseMimeType: "application/json" }
     });
@@ -53,16 +53,16 @@ export async function POST(request: Request) {
 
     const timeoutPromise = new Promise((resolve) => {
       setTimeout(() => {
-        console.warn("EduOracle: Vision Tutor timeout hit. Serving fallback.");
+        console.warn("EduGlobiz: Vision Tutor timeout hit. Serving fallback.");
         resolve(FALLBACK_VISION);
-      }, 4000); 
+      }, 4000);
     });
 
     const finalData = await Promise.race([geminiPromise, timeoutPromise]);
     return NextResponse.json(finalData, { status: 200 });
 
   } catch (error) {
-    console.error("EduOracle Vision Error:", error);
+    console.error("EduGlobiz Vision Error:", error);
     return NextResponse.json(FALLBACK_VISION, { status: 200 });
   }
 }
