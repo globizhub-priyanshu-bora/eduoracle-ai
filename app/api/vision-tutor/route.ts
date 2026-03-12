@@ -10,8 +10,6 @@ const FALLBACK_VISION = {
   ]
 };
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-
 export async function POST(request: Request) {
   try {
     // 1. Extract the image from the FormData payload
@@ -43,26 +41,54 @@ export async function POST(request: Request) {
       }
     `;
 
-    // Using gemini-1.5-pro for advanced vision and reasoning tasks 
-    const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-pro",
-      generationConfig: { responseMimeType: "application/json" }
-    });
+    // 3. Gather all available API keys
+    const apiKeys = [
+      process.env.GEMINI_API_KEY1,
+      process.env.GEMINI_API_KEY2,
+      process.env.GEMINI_API_KEY3
+    ].filter(Boolean) as string[];
 
-    const geminiPromise = model.generateContent([prompt, imagePart]).then(res => JSON.parse(res.response.text()));
+    let finalData = null;
 
-    const timeoutPromise = new Promise((resolve) => {
-      setTimeout(() => {
-        console.warn("EduGlobiz: Vision Tutor timeout hit. Serving fallback.");
-        resolve(FALLBACK_VISION);
-      }, 4000);
-    });
+    if (apiKeys.length > 0) {
+      // 🚀 THE ROTATION ENGINE 🚀
+      for (let i = 0; i < apiKeys.length; i++) {
+        try {
+          console.log(`EduGlobiz Vision: Attempting generation with API Key ${i + 1}...`);
+          const genAI = new GoogleGenerativeAI(apiKeys[i]);
 
-    const finalData = await Promise.race([geminiPromise, timeoutPromise]);
+          // Using gemini-2.5-flash for maximum speed to beat the 4s timeout
+          const model = genAI.getGenerativeModel({
+            model: "gemini-2.5-flash",
+            generationConfig: { responseMimeType: "application/json" }
+          });
+
+          // Promise.race enforces a 4-second timeout. If it times out, it REJECTS, triggering the next key.
+          const aiResponse = await Promise.race([
+            model.generateContent([prompt, imagePart]),
+            new Promise((_, reject) => setTimeout(() => reject(new Error("AI Timeout (4s limit hit)")), 4000))
+          ]) as any;
+
+          finalData = JSON.parse(aiResponse.response.text());
+          console.log(`EduGlobiz Vision: Success with Key ${i + 1}!`);
+
+          break; // If successful, exit the loop!
+        } catch (keyError: any) {
+          console.warn(`EduGlobiz Vision: Key ${i + 1} failed. Reason: ${keyError.message}`);
+        }
+      }
+    }
+
+    // 4. Handle Fallback if all keys fail or time out
+    if (!finalData) {
+      console.warn("EduGlobiz Vision [Fallback]: All Gemini keys exhausted or timed out. Serving FALLBACK_VISION.");
+      finalData = FALLBACK_VISION;
+    }
+
     return NextResponse.json(finalData, { status: 200 });
 
   } catch (error) {
-    console.error("EduGlobiz Vision Error:", error);
+    console.error("EduGlobiz Vision [Fatal Error]:", error);
     return NextResponse.json(FALLBACK_VISION, { status: 200 });
   }
 }

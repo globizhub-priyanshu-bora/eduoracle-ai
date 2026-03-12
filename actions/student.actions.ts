@@ -213,7 +213,7 @@ export async function simulateCareerTrajectoryAction(formData: {
 }
 
 // ------------------------------------------------------------------
-// 7. REAL AI VISION TUTOR ANALYSIS (Powered by Gemini)
+// 7. REAL AI VISION TUTOR ANALYSIS (With API Key Rotation)
 // ------------------------------------------------------------------
 export async function analyzeVisionQueryAction(base64Image: string, mimeType: string) {
   try {
@@ -224,12 +224,18 @@ export async function analyzeVisionQueryAction(base64Image: string, mimeType: st
 
     if (!user || !user.studentProfile) return { success: false, error: "User not found" };
 
-    // Initialize Gemini with the updated 2.5 Flash model
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
+    // Group all available keys into an array, filtering out undefined ones
+    const apiKeys = [
+      process.env.GEMINI_API_KEY1,
+      process.env.GEMINI_API_KEY2,
+      process.env.GEMINI_API_KEY3
+    ].filter(Boolean) as string[];
+
+    if (apiKeys.length === 0) {
+      return { success: false, error: "No Gemini API keys configured." };
+    }
 
     const base64Data = base64Image.split(',')[1];
-
     const imagePart = {
       inlineData: {
         data: base64Data,
@@ -249,12 +255,40 @@ export async function analyzeVisionQueryAction(base64Image: string, mimeType: st
       "nextStep": "A brief 1-sentence recommendation on what to study next to master this."
     }`;
 
-    const result = await model.generateContent([prompt, imagePart]);
-    const responseText = result.response.text();
+    let responseText = "";
+    let isSuccess = false;
+
+    // 🚀 THE ROTATION ENGINE 🚀
+    // Loop through each key. If one throws a quota error, it catches it and moves to the next key.
+    for (let i = 0; i < apiKeys.length; i++) {
+      try {
+        console.log(`Attempting Gemini API Call with Key ${i + 1}...`);
+        const genAI = new GoogleGenerativeAI(apiKeys[i]);
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
+        
+        const result = await model.generateContent([prompt, imagePart]);
+        responseText = result.response.text();
+        
+        isSuccess = true;
+        break; // If successful, exit the loop immediately!
+      } catch (keyError: any) {
+        console.warn(`Key ${i + 1} failed. Reason: ${keyError.message}`);
+        // If we just failed on the LAST key, throw the error outwards
+        if (i === apiKeys.length - 1) {
+          throw new Error("All provided Gemini API keys have exhausted their limits or failed.");
+        }
+      }
+    }
+
+    if (!isSuccess) {
+       throw new Error("Failed to generate content after checking all keys.");
+    }
     
+    // Clean and parse the JSON response
     const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
     const aiSolution = JSON.parse(cleanJson);
 
+    // Save to database
     await prisma.visionQuery.create({
       data: {
         studentProfileId: user.studentProfile.id,
@@ -267,7 +301,7 @@ export async function analyzeVisionQueryAction(base64Image: string, mimeType: st
     return { success: true, data: aiSolution };
   } catch (error) {
     console.error("Action Error - Vision Query:", error);
-    return { success: false, error: "Failed to analyze image. Check API key and image size." };
+    return { success: false, error: "Failed to analyze image. All API keys might be exhausted." };
   }
 }
 
@@ -282,24 +316,19 @@ export async function calculateCGPAPredictionAction(formData: {
   assignments: number;
 }) {
   try {
-    // 1. Normalize study hours (assuming 6hrs is the 100% threshold)
     let studyScore = (formData.studyHours / 6) * 100;
     if (studyScore > 100) studyScore = 100;
 
-    // 2. The Weighted Calculation
     const predictionScore = 
-      (formData.pastCGPA * 10 * 0.40) +  // 40% weight
-      (formData.internal * 0.30) +       // 30% weight
-      (formData.attendance * 0.10) +     // 10% weight
-      (studyScore * 0.15) +              // 15% weight
-      (formData.assignments * 0.05);     // 5% weight
+      (formData.pastCGPA * 10 * 0.40) +  
+      (formData.internal * 0.30) +       
+      (formData.attendance * 0.10) +     
+      (studyScore * 0.15) +              
+      (formData.assignments * 0.05);     
 
-    // 3. Format the results
     const predictedCGPA = Number((predictionScore / 10).toFixed(2));
     const percentage = Number(predictionScore.toFixed(2));
 
-    // Optional: You could save this to the DB here if you wanted to track their predictions over time!
-    
     return { 
       success: true, 
       data: { percentage, cgpa: predictedCGPA } 

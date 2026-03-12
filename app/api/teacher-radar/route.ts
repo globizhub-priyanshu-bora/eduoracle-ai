@@ -17,13 +17,9 @@ const FALLBACK_RADAR = {
   ],
 };
 
-const apiKey = process.env.GEMINI_API_KEY || "";
-const genAI = new GoogleGenerativeAI(apiKey);
-
 export async function GET() {
   try {
     // 1. THE DB CACHE CHECK
-    // Wrapped in a try/catch so if Neon is unreachable, we still run the AI
     let existingRoster = null;
     try {
       existingRoster = await prisma.classRoster.findFirst();
@@ -36,7 +32,7 @@ export async function GET() {
       console.warn("EduGlobiz [DB Warning]: Could not read cache, proceeding to AI generation.");
     }
 
-    // 2. GENERATE NEW DATA (If cache is empty or DB failed)
+    // 2. GENERATE NEW DATA (With API Key Rotation)
     console.log("EduGlobiz: Generating fresh AI data...");
     const prompt = `
       You are EduGlobiz. Generate a cohort analysis for 10 demo students studying for the ISRO Scientist 'SC' (Computer Science) exam.
@@ -50,27 +46,48 @@ export async function GET() {
       }
     `;
 
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash", // 🚨 FIXED: Upgraded to the active 2.5 model
-      generationConfig: { responseMimeType: "application/json", temperature: 0.2 },
-    });
+    // Group all available keys
+    const apiKeys = [
+      process.env.GEMINI_API_KEY1,
+      process.env.GEMINI_API_KEY2,
+      process.env.GEMINI_API_KEY3
+    ].filter(Boolean) as string[];
 
-    const geminiPromise = model
-      .generateContent(prompt)
-      .then((res) => JSON.parse(res.response.text()))
-      .catch((err) => {
-        console.error("EduGlobiz [AI]: Google API Rejected Request:", err.message);
-        return FALLBACK_RADAR;
-      });
+    let finalData = null;
 
-    const timeoutPromise = new Promise((resolve) => {
-      setTimeout(() => {
-        console.warn("EduGlobiz: Gemini API timeout hit. Serving fallback.");
-        resolve(FALLBACK_RADAR);
-      }, 4000);
-    });
+    if (apiKeys.length > 0) {
+      // 🚀 THE ROTATION ENGINE 🚀
+      for (let i = 0; i < apiKeys.length; i++) {
+        try {
+          console.log(`EduGlobiz: Attempting AI generation with Key ${i + 1}...`);
+          const genAI = new GoogleGenerativeAI(apiKeys[i]);
+          
+          const model = genAI.getGenerativeModel({
+            model: "gemini-2.5-flash",
+            generationConfig: { responseMimeType: "application/json", temperature: 0.2 },
+          });
 
-    const finalData = await Promise.race([geminiPromise, timeoutPromise]);
+          // Promise.race enforces a 4-second timeout. If it times out, it REJECTS, triggering the next key.
+          const aiResponse = await Promise.race([
+            model.generateContent(prompt),
+            new Promise((_, reject) => setTimeout(() => reject(new Error("AI Timeout (4s limit hit)")), 4000))
+          ]) as any;
+
+          finalData = JSON.parse(aiResponse.response.text());
+          console.log(`EduGlobiz: Success with Key ${i + 1}!`);
+          
+          break; // If successful, exit the loop!
+        } catch (keyError: any) {
+          console.warn(`EduGlobiz: Key ${i + 1} failed. Reason: ${keyError.message}`);
+        }
+      }
+    }
+
+    // If ALL keys failed (or timed out), or no keys were configured, apply the fallback
+    if (!finalData) {
+      console.warn("EduGlobiz [Fallback]: All Gemini keys exhausted or timed out. Serving FALLBACK_RADAR.");
+      finalData = FALLBACK_RADAR;
+    }
 
     // 3. SAFE DB WRITE 
     // Only attempt to save if we have a valid DB URL and the data isn't the fallback

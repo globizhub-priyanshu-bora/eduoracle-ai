@@ -25,7 +25,6 @@ import {
   HelpCircle,
   ChevronLeft,
   ChevronRight,
-  Cloud,
 } from "lucide-react";
 
 export default function SidebarContent() {
