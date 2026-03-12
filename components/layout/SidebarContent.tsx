@@ -25,6 +25,7 @@ import {
   HelpCircle,
   ChevronLeft,
   ChevronRight,
+  Dna,
 } from "lucide-react";
 
 export default function SidebarContent() {
@@ -40,6 +41,7 @@ export default function SidebarContent() {
     { name: "Doubt Tutor (Vision)", href: "/student/tutor", icon: Camera },
     { name: "My Exams", href: "/student/exams", icon: Book },
     { name: "CGPA Predictor", href: "/student/predictor", icon: GraduationCap },
+    { name: "Learning DNA", href: "/student/dna", icon: Dna },
     {
       name: "Career Goals",
       href: "/student/career-goals",
