@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import {
   BrainCircuit,
   Presentation,
@@ -10,6 +11,8 @@ import {
   ArrowRight,
   Loader2,
   ShieldCheck,
+  Code2,
+  Sparkles
 } from "lucide-react";
 
 export default function HomePage() {
@@ -25,6 +28,29 @@ export default function HomePage() {
 
   return (
     <div className="relative min-h-screen bg-black text-neutral-50 flex flex-col items-center justify-center p-4 sm:p-6 overflow-hidden">
+      
+      {/* 🚀 FLOATING CONTRIBUTE BUTTON 🚀 */}
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3, duration: 0.8 }}
+        className="absolute top-6 right-6 z-50"
+      >
+        <Link 
+          href="/contact"
+          className="group relative flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md overflow-hidden transition-all hover:border-purple-500/50 hover:bg-purple-500/10 hover:shadow-[0_0_25px_rgba(168,85,247,0.3)]"
+        >
+          {/* Animated Shine Effect */}
+          <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/10 to-transparent group-hover:animate-shimmer" />
+          
+          <Code2 className="w-4 h-4 text-purple-400 group-hover:text-purple-300 transition-colors" />
+          <span className="text-sm font-semibold text-neutral-300 group-hover:text-white transition-colors">
+            Contribute / Hiring
+          </span>
+          <Sparkles className="w-3.5 h-3.5 text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </Link>
+      </motion.div>
+
       {/* 🎥 HIGH-TECH BACKGROUND VIDEO LAYER */}
       <div className="absolute inset-0 z-0 overflow-hidden">
         <video

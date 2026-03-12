@@ -5,6 +5,15 @@
   --foreground: #171717;
 }
 
+@theme {
+  --animate-shimmer: shimmer 2s infinite linear;
+  @keyframes shimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
