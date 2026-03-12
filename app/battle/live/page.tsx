@@ -84,7 +84,7 @@ const DOMAIN_QUESTIONS: Record<string, any[]> = {
   ]
 };
 
-// 🚨 MAIN ENGINE COMPONENT 🚨
+// 🚨 MAIN ENGINE LOGIC 🚨
 function BattleEngine() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -109,6 +109,7 @@ function BattleEngine() {
   const [streak, setStreak] = useState(0);
   const [showLogs, setShowLogs] = useState(false);
   const [showCertificate, setShowCertificate] = useState(false); 
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [score, setScore] = useState(0);
@@ -120,11 +121,14 @@ function BattleEngine() {
   const [hiddenOptions, setHiddenOptions] = useState<number[]>([]);
 
   const currentQuestion = questions[currentQIndex];
+  
+  const finalScore = score + timeLeft;
+  const accuracy = Math.round((questionResults.filter(Boolean).length / questions.length) * 100) || 0;
 
-  const getRank = (finalScore: number) => {
-    if (finalScore >= 500) return "Mission Director";
-    if (finalScore >= 400) return "Scientist 'SC'";
-    if (finalScore >= 250) return "Senior Researcher";
+  const getRank = (scoreVal: number) => {
+    if (scoreVal >= 500) return "Mission Director";
+    if (scoreVal >= 400) return "Scientist 'SC'";
+    if (scoreVal >= 250) return "Senior Researcher";
     return "Cadet Engineer";
   };
 
@@ -132,6 +136,71 @@ function BattleEngine() {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // 🚨 FIXED PDF LOGIC USING PRO VERSION & SAFE CSS 🚨
+  const handleDownloadPDF = async () => {
+    setIsDownloading(true);
+    try {
+      // Using the patched library
+      const { default: html2canvas } = await import('html2canvas-pro');
+      const { default: jsPDF } = await import('jspdf');
+
+      const element = document.getElementById('pdf-template-container');
+      if (!element) return;
+
+      const canvas = await html2canvas(element, { 
+        scale: 2, 
+        backgroundColor: '#0a0a0a', 
+        logging: false, 
+        useCORS: true 
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgProps = pdf.getImageProperties(imgData);
+      const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+      heightLeft -= pdfHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+        heightLeft -= pdfHeight;
+      }
+
+      pdf.save(`EduOracle_Logs_${displaySyllabus.replace(/\s+/g, '_')}.pdf`);
+    } catch (error) {
+      console.error('Error generating elite PDF', error);
+      alert("System Overload: Unable to compile PDF at this time.");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleShare = async () => {
+    const rank = getRank(finalScore);
+    const shareText = `I just achieved the rank of ${rank} with ${finalScore} XP in the ${displaySyllabus} simulation on EduOracle AI! 🚀 Can you beat my score?`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'EduOracle Mission Debrief', text: shareText });
+      } catch (err) {
+        console.log('Share canceled', err);
+      }
+    } else {
+      navigator.clipboard.writeText(shareText);
+      alert("Mission status copied to clipboard! Opening LinkedIn so you can paste it...");
+      window.open("https://www.linkedin.com/feed/", "_blank");
+    }
   };
 
   useEffect(() => {
@@ -151,9 +220,7 @@ function BattleEngine() {
     }
   }, [introStage]);
 
-  const handleFinish = useCallback(() => {
-    setIsFinished(true);
-  }, []);
+  const handleFinish = useCallback(() => { setIsFinished(true); }, []);
 
   useEffect(() => {
     if (isFinished || isLoading || introStage !== null) return;
@@ -199,7 +266,6 @@ function BattleEngine() {
     }, 2000); 
   };
 
-  // 1. Loading Screen
   if (isLoading) {
     return (
       <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center p-6">
@@ -209,39 +275,101 @@ function BattleEngine() {
     );
   }
 
-  // 2. Cinematic Intro
   if (introStage !== null) {
     return (
       <div className="min-h-screen bg-neutral-950 flex items-center justify-center relative overflow-hidden">
-        <motion.div key={introStage} initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.5 }} className="text-7xl md:text-9xl font-black text-white z-10">
-          {introStage}
-        </motion.div>
+        <motion.div key={introStage} initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.5 }} className="text-7xl md:text-9xl font-black text-white z-10">{introStage}</motion.div>
       </div>
     );
   }
 
-  // 3. Main Interface
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-50 flex flex-col p-4 sm:p-6 relative overflow-hidden">
       
+      {/* 🚨 BULLETPROOF HIDDEN PDF TEMPLATE 🚨 */}
+      {/* Using strictly inline colors to prevent html2canvas-pro from failing */}
+      <div className="absolute left-[9999px] top-0 pointer-events-none">
+        <div id="pdf-template-container" className="w-[800px] p-12 font-sans" style={{ backgroundColor: '#0a0a0a', color: '#ffffff' }}>
+          
+          <div className="pb-8 mb-8 text-center relative" style={{ borderBottom: '1px solid rgba(249, 115, 22, 0.3)' }}>
+            <ShieldCheck size={48} color="#f97316" className="mx-auto mb-4" />
+            <h1 className="text-5xl font-black tracking-[0.2em] uppercase" style={{ color: '#f97316' }}>EDUORACLE AI</h1>
+            <h2 className="text-2xl font-bold tracking-[0.3em] uppercase mt-3" style={{ color: '#ffffff' }}>Mission Debrief Report</h2>
+            <div className="inline-block mt-4 px-6 py-2 rounded-full font-medium" style={{ backgroundColor: '#171717', border: '1px solid #262626' }}>
+              Operative: <span style={{ color: '#ffffff', fontWeight: 'bold' }}>Triya Nath</span> &nbsp; | &nbsp; Simulation: <span style={{ color: '#fb923c', fontWeight: 'bold' }}>{displaySyllabus}</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 gap-4 mb-10">
+            <div className="p-5 rounded-2xl text-center" style={{ backgroundColor: '#121212', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <p className="text-[10px] uppercase font-black tracking-widest mb-1" style={{ color: '#737373' }}>Combat Rank</p>
+              <p className="text-xl font-black uppercase leading-tight" style={{ color: '#fb923c' }}>{getRank(finalScore)}</p>
+            </div>
+            <div className="p-5 rounded-2xl text-center" style={{ backgroundColor: '#121212', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <p className="text-[10px] uppercase font-black tracking-widest mb-1" style={{ color: '#737373' }}>Total XP</p>
+              <p className="text-3xl font-mono font-black">{finalScore}</p>
+            </div>
+            <div className="p-5 rounded-2xl text-center" style={{ backgroundColor: '#121212', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <p className="text-[10px] uppercase font-black tracking-widest mb-1" style={{ color: '#737373' }}>Accuracy</p>
+              <p className="text-3xl font-mono font-black" style={{ color: accuracy >= 50 ? '#34d399' : '#f87171' }}>{accuracy}%</p>
+            </div>
+            <div className="p-5 rounded-2xl text-center" style={{ backgroundColor: '#121212', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <p className="text-[10px] uppercase font-black tracking-widest mb-1" style={{ color: '#737373' }}>Time Left</p>
+              <p className="text-3xl font-mono font-black">{formatTime(timeLeft)}</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-lg font-black uppercase tracking-widest pb-3 mb-6 flex items-center gap-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+              <FileText color="#f97316" size={20} /> Node Telemetry Logs
+            </h3>
+            {questions.map((q, idx) => {
+              const isCorrect = userAnswers[idx] === q.correctAnswer;
+              return (
+                <div key={idx} className="p-5 rounded-2xl" style={{ backgroundColor: isCorrect ? 'rgba(2, 44, 34, 0.4)' : 'rgba(69, 10, 10, 0.4)', border: `1px solid ${isCorrect ? 'rgba(6, 78, 59, 0.8)' : 'rgba(127, 29, 29, 0.8)'}` }}>
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-xs font-black uppercase tracking-widest" style={{ color: '#a3a3a3' }}>Node {idx + 1} <span style={{ color: '#525252' }}>•</span> {q.difficulty}</span>
+                    <span className="text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full" style={{ backgroundColor: isCorrect ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', color: isCorrect ? '#10b981' : '#ef4444' }}>{isCorrect ? 'SUCCESS' : 'FAILURE'}</span>
+                  </div>
+                  <p className="text-base font-bold mb-4 leading-relaxed" style={{ color: '#e5e5e5' }}>{q.question}</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-3 rounded-xl" style={{ backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <p className="text-[9px] uppercase font-black tracking-widest mb-1" style={{ color: '#737373' }}>Your Input</p>
+                      <p className="text-sm font-bold" style={{ color: isCorrect ? '#34d399' : '#f87171' }}>{q.options[userAnswers[idx] ?? 0] || "SKIPPED"}</p>
+                    </div>
+                    {!isCorrect && (
+                      <div className="p-3 rounded-xl" style={{ backgroundColor: 'rgba(2, 44, 34, 0.3)', border: '1px solid rgba(6, 78, 59, 0.5)' }}>
+                        <p className="text-[9px] uppercase font-black tracking-widest mb-1" style={{ color: '#059669' }}>Correct Protocol</p>
+                        <p className="text-sm font-bold" style={{ color: '#34d399' }}>{q.options[q.correctAnswer]}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="mt-16 pt-8 text-center flex flex-col items-center justify-center" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+             <div className="flex items-center gap-2 mb-2"><div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#f97316' }}></div><p className="text-[10px] tracking-[0.2em] uppercase font-bold" style={{ color: '#a3a3a3' }}>End of Transmission</p></div>
+             <p className="text-lg tracking-widest uppercase font-black mt-2" style={{ color: '#ea580c' }}>Globizhub India Pvt. Ltd.</p>
+             <p className="text-[9px] mt-2 font-mono" style={{ color: '#525252' }}>DOCUMENT ID: {Math.random().toString(36).substr(2, 9).toUpperCase()} - AUTHORIZED EYES ONLY</p>
+          </div>
+        </div>
+      </div>
+      {/* 🚨 END HIDDEN TEMPLATE 🚨 */}
+
+
       <AnimatePresence>
-        {/* LOGS MODAL */}
         {showLogs && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-neutral-950/95 backdrop-blur-md p-4 sm:p-8 flex flex-col">
             <div className="max-w-2xl w-full mx-auto flex-1 flex flex-col">
-              <header className="flex items-center justify-between mb-8">
-                <button onClick={() => setShowLogs(false)} className="flex items-center gap-2 text-neutral-400 hover:text-white"><ChevronLeft size={20} /> Back</button>
-                <h2 className="text-xl font-bold flex items-center gap-2 text-white"><FileText className="text-orange-500" /> Mission Telemetry</h2>
-              </header>
+              <header className="flex items-center justify-between mb-8"><button onClick={() => setShowLogs(false)} className="flex items-center gap-2 text-neutral-400 hover:text-white"><ChevronLeft size={20} /> Back</button><h2 className="text-xl font-bold flex items-center gap-2 text-white"><FileText className="text-orange-500" /> Mission Telemetry</h2></header>
               <div className="flex-1 overflow-y-auto space-y-4 pr-2">
                 {questions.map((q, idx) => {
                   const isCorrect = userAnswers[idx] === q.correctAnswer;
                   return (
                     <div key={q.id} className="p-5 rounded-2xl bg-white/5 border border-white/10">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Node {idx + 1} • {q.difficulty}</span>
-                        {isCorrect ? <span className="text-emerald-500 text-xs font-bold">SUCCESS</span> : <span className="text-red-500 text-xs font-bold">FAILURE</span>}
-                      </div>
+                      <div className="flex items-center justify-between mb-2"><span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Node {idx + 1} • {q.difficulty}</span>{isCorrect ? <span className="text-emerald-500 text-xs font-bold">SUCCESS</span> : <span className="text-red-500 text-xs font-bold">FAILURE</span>}</div>
                       <h4 className="font-medium text-neutral-200 mb-4">{q.question}</h4>
                       <div className="space-y-2">
                         <div className={`p-3 rounded-lg text-sm border ${isCorrect ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>{q.options[userAnswers[idx] ?? 0] || "Skipped"}</div>
@@ -255,32 +383,25 @@ function BattleEngine() {
           </motion.div>
         )}
 
-        {/* CERTIFICATE MODAL */}
         {showCertificate && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[120] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4">
              <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} className="max-w-md w-full bg-neutral-900 border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl">
                 <div className="relative p-8 text-center space-y-6">
                   <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-orange-500/20 blur-[80px] rounded-full" />
-                  <div className="mx-auto w-24 h-24 bg-gradient-to-tr from-orange-600 to-amber-400 rounded-2xl flex items-center justify-center shadow-[0_0_50px_rgba(245,158,11,0.3)] rotate-12 mb-4">
-                    <ShieldCheck size={48} className="text-white -rotate-12" />
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="text-xs font-black uppercase tracking-[0.3em] text-orange-500">Verified Achievement</h3>
-                    <h2 className="text-3xl font-black text-white italic">MISSION DEBRIEF</h2>
-                  </div>
+                  <div className="mx-auto w-24 h-24 bg-gradient-to-tr from-orange-600 to-amber-400 rounded-2xl flex items-center justify-center shadow-[0_0_50px_rgba(245,158,11,0.3)] rotate-12 mb-4"><ShieldCheck size={48} className="text-white -rotate-12" /></div>
+                  <div className="space-y-2"><h3 className="text-xs font-black uppercase tracking-[0.3em] text-orange-500">Verified Achievement</h3><h2 className="text-3xl font-black text-white italic">MISSION DEBRIEF</h2></div>
                   <div className="py-6 border-y border-white/5 space-y-4">
-                    <div>
-                      <p className="text-[10px] text-neutral-500 uppercase font-bold tracking-widest">Candidate Rank</p>
-                      <p className="text-2xl font-bold text-white uppercase tracking-tighter">{getRank(score + timeLeft)}</p>
-                    </div>
+                    <div><p className="text-[10px] text-neutral-500 uppercase font-bold tracking-widest">Candidate Rank</p><p className="text-2xl font-bold text-white uppercase tracking-tighter">{getRank(finalScore)}</p></div>
                     <div className="flex justify-center gap-12">
-                       <div><p className="text-[10px] text-neutral-500 uppercase font-bold">XP Score</p><p className="text-xl font-mono text-orange-400">{score + timeLeft}</p></div>
-                       <div><p className="text-[10px] text-neutral-500 uppercase font-bold">Accuracy</p><p className="text-xl font-mono text-emerald-400">{Math.round((questionResults.filter(Boolean).length / questions.length) * 100)}%</p></div>
+                       <div><p className="text-[10px] text-neutral-500 uppercase font-bold">XP Score</p><p className="text-xl font-mono text-orange-400">{finalScore}</p></div>
+                       <div><p className="text-[10px] text-neutral-500 uppercase font-bold">Accuracy</p><p className={`text-xl font-mono ${accuracy >= 50 ? 'text-emerald-400' : 'text-red-400'}`}>{accuracy}%</p></div>
                     </div>
                   </div>
                   <div className="flex gap-3">
-                    <button className="flex-1 py-4 bg-white text-black rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-neutral-200 transition-all"><Download size={14}/> SAVE LOGS</button>
-                    <button className="flex-1 py-4 bg-[#0A66C2] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-[#004182] transition-all"><Linkedin size={14}/> SHARE</button>
+                    <button onClick={handleDownloadPDF} disabled={isDownloading} className={`flex-1 py-4 bg-white text-black rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all ${isDownloading ? 'opacity-80 cursor-wait' : 'hover:bg-neutral-200'}`}>
+                      {isDownloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} {isDownloading ? 'COMPILING...' : 'SAVE LOGS'}
+                    </button>
+                    <button onClick={handleShare} className="flex-1 py-4 bg-[#0A66C2] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-[#004182] transition-all cursor-pointer"><Linkedin size={14}/> SHARE</button>
                   </div>
                   <button onClick={() => setShowCertificate(false)} className="text-[10px] text-neutral-600 font-bold uppercase tracking-widest hover:text-neutral-400 transition-colors">Dismiss</button>
                 </div>
@@ -312,27 +433,14 @@ function BattleEngine() {
           {!isFinished && currentQuestion ? (
             <motion.div key={currentQIndex} initial={{ opacity: 0, x: 20 }} animate={isWrongShake ? { x: [-10, 10, -10, 10, 0] } : { opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="w-full space-y-6">
               <div className={`p-6 md:p-8 rounded-2xl border backdrop-blur-sm transition-all ${isWrongShake ? "bg-red-500/10 border-red-500/50" : "bg-white/5 border-white/10"}`}>
-                <div className="flex items-center justify-between mb-4 text-[10px] font-black uppercase tracking-widest">
-                  <span className="text-neutral-500">Node {currentQIndex + 1} of {questions.length}</span>
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2 py-0.5 rounded-md border ${
-                      currentQuestion.difficulty === 'HARD' ? 'bg-red-500/10 border-red-500/30 text-red-500' : 
-                      currentQuestion.difficulty === 'MEDIUM' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-500' : 
-                      'bg-emerald-500/10 border-emerald-500/30 text-emerald-500'
-                    }`}>
-                      {currentQuestion.difficulty}
-                    </span>
-                    <span className="bg-orange-500/10 border border-orange-500/30 px-2 py-0.5 rounded-md text-orange-500">{displaySyllabus}</span>
-                  </div>
-                </div>
+                <div className="flex items-center justify-between mb-4 text-[10px] font-black uppercase tracking-widest"><span className="text-neutral-500">Node {currentQIndex + 1} of {questions.length}</span><div className="flex items-center gap-2"><span className={`px-2 py-0.5 rounded-md border ${currentQuestion.difficulty === 'HARD' ? 'bg-red-500/10 border-red-500/30 text-red-500' : currentQuestion.difficulty === 'MEDIUM' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-500' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500'}`}>{currentQuestion.difficulty}</span><span className="bg-orange-500/10 border border-orange-500/30 px-2 py-0.5 rounded-md text-orange-500">{displaySyllabus}</span></div></div>
                 <h2 className="text-xl md:text-2xl font-semibold leading-relaxed">{currentQuestion.question}</h2>
               </div>
               <div className="grid gap-3">
                 {currentQuestion.options.map((option: string, index: number) => {
                   const isHidden = hiddenOptions.includes(index);
                   if (isHidden) return <button key={index} disabled className="p-4 rounded-xl border border-transparent opacity-10 cursor-not-allowed text-left text-neutral-600 line-through">{option}</button>;
-                  let stateClass = "bg-white/5 border-white/10 hover:bg-white/10 text-neutral-300";
-                  let Icon = null;
+                  let stateClass = "bg-white/5 border-white/10 hover:bg-white/10 text-neutral-300"; let Icon = null;
                   if (isAnswered) {
                     if (index === currentQuestion.correctAnswer) { stateClass = "bg-emerald-500/20 border-emerald-500/50 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]"; Icon = <CheckCircle2 size={20}/>; }
                     else if (index === selectedAnswer) { stateClass = "bg-red-500/20 border-red-500/50 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.2)]"; Icon = <XCircle size={20}/>; }
@@ -341,30 +449,23 @@ function BattleEngine() {
                   return <button key={index} onClick={() => handleAnswer(index)} disabled={isAnswered} className={`relative flex items-center justify-between p-4 rounded-xl border transition-all text-left ${stateClass}`}><span>{option}</span>{Icon && <span className="absolute right-4">{Icon}</span>}</button>;
                 })}
               </div>
-              <div className="flex justify-center pt-4 border-t border-white/10">
-                <button onClick={handleGarbageCollect} disabled={isGarbageCollectUsed || isAnswered} className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold transition-all ${isGarbageCollectUsed || isAnswered ? "bg-neutral-800 text-neutral-600" : "bg-purple-600/20 text-purple-400 hover:bg-purple-600/30 border border-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.2)]"}`}><Trash2 size={16}/> Garbage Collect (50/50)</button>
-              </div>
+              <div className="flex justify-center pt-4 border-t border-white/10"><button onClick={handleGarbageCollect} disabled={isGarbageCollectUsed || isAnswered} className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold transition-all ${isGarbageCollectUsed || isAnswered ? "bg-neutral-800 text-neutral-600" : "bg-purple-600/20 text-purple-400 hover:bg-purple-600/30 border border-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.2)]"}`}><Trash2 size={16}/> Garbage Collect (50/50)</button></div>
             </motion.div>
           ) : (
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center space-y-6 p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm w-full">
               <div className="mx-auto w-20 h-20 bg-orange-500/20 rounded-full flex items-center justify-center border border-orange-500/30 shadow-[0_0_30px_orange]"><Trophy size={40} className="text-orange-400" /></div>
               <h2 className="text-3xl font-black italic uppercase tracking-tighter">Mission Success!</h2>
-              
               <div className="bg-black/40 border border-white/10 rounded-2xl p-6 w-full max-w-sm mx-auto space-y-4">
-                <div className="flex justify-between items-center text-neutral-300">
-                  <span className="font-bold uppercase text-[10px] tracking-widest text-neutral-500">Combat Rank</span>
-                  <span className="text-orange-500 font-bold">{getRank(score + timeLeft)}</span>
-                </div>
+                <div className="flex justify-between items-center text-neutral-300"><span className="font-bold uppercase text-[10px] tracking-widest text-neutral-500">Combat Rank</span><span className="text-orange-500 font-bold">{getRank(finalScore)}</span></div>
                 <div className="flex justify-between items-center text-neutral-300"><span>Base Score</span><span className="font-mono font-bold text-2xl">{score}</span></div>
                 <div className="flex justify-between items-center text-emerald-400"><span>Speed Bonus</span><span className="font-mono font-bold text-2xl">+{timeLeft > 0 ? timeLeft : 0}</span></div>
                 <div className="h-px bg-white/10 w-full my-2" />
-                <div className="flex justify-between items-end"><span className="font-bold text-neutral-400 uppercase tracking-widest text-sm mb-1">Total XP</span><span className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-orange-400 to-amber-500">{score + (timeLeft > 0 ? timeLeft : 0)}</span></div>
+                <div className="flex justify-between items-end"><span className="font-bold text-neutral-400 uppercase tracking-widest text-sm mb-1">Total XP</span><span className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-orange-400 to-amber-500">{finalScore}</span></div>
               </div>
-
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4">
                 <button onClick={() => setShowCertificate(true)} className="py-4 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 rounded-xl font-bold border border-orange-500/20 flex items-center justify-center gap-2 transition-all"><Medal size={18}/> GET PRESTIGE CARD</button>
                 <button onClick={() => setShowLogs(true)} className="py-4 bg-white/5 hover:bg-white/10 text-white rounded-xl font-bold border border-white/10 flex items-center justify-center gap-2 transition-all"><FileText size={18}/> REVIEW DATA</button>
-                <button onClick={() => router.push("/")} className="py-4 bg-white text-black rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95"><ChevronLeft size={18}/> COMMAND CENTER</button>
+                <button onClick={() => router.push("/battle")} className="py-4 bg-white text-black rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95"><ChevronLeft size={18}/> COMMAND CENTER</button>
               </div>
             </motion.div>
           )}
