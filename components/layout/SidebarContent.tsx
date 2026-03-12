@@ -26,6 +26,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Dna,
+  Home, // 🌟 ADDED HOME ICON
 } from "lucide-react";
 
 export default function SidebarContent() {
@@ -168,22 +169,49 @@ export default function SidebarContent() {
       </nav>
 
       {/* Footer Controls */}
-      <div className="p-4 border-t border-white/5 bg-white/[0.01]">
+      <div className="p-4 border-t border-white/5 bg-white/[0.01] flex flex-col gap-1">
+        
+        {/* 🌟 NEW HOME BUTTON 🌟 */}
         <button
-          className={`w-full flex items-center text-sm font-medium hover:bg-white/5 text-neutral-500 hover:text-white group rounded-xl transition-colors ${isCollapsed ? "justify-center py-3.5" : "gap-3 px-4 py-3"}`}
+          onClick={() => router.push("/")}
+          className={`w-full flex items-center relative group text-sm font-medium hover:bg-white/5 text-neutral-500 hover:text-white rounded-xl transition-colors ${isCollapsed ? "justify-center py-3.5" : "gap-3 px-4 py-3"}`}
+        >
+          <Home className="w-5 h-5 shrink-0" />
+          {!isCollapsed && <span className="truncate">Back to Home</span>}
+          {isCollapsed && (
+            <div className="absolute left-16 bg-neutral-900 border border-white/10 text-white px-2 py-1 rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity font-medium shadow-xl z-50">
+              Home Page
+            </div>
+          )}
+        </button>
+
+        <button
+          className={`w-full flex items-center relative group text-sm font-medium hover:bg-white/5 text-neutral-500 hover:text-white rounded-xl transition-colors ${isCollapsed ? "justify-center py-3.5" : "gap-3 px-4 py-3"}`}
         >
           <Settings
             className={`w-5 h-5 shrink-0 group-hover:rotate-90 transition-transform duration-500`}
           />
           {!isCollapsed && <span className="truncate">Settings</span>}
+          {isCollapsed && (
+            <div className="absolute left-16 bg-neutral-900 border border-white/10 text-white px-2 py-1 rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity font-medium shadow-xl z-50">
+              Settings
+            </div>
+          )}
         </button>
+
         <button
           onClick={() => router.push("/login")}
-          className={`w-full flex items-center mt-1 text-sm font-medium hover:bg-red-500/10 text-neutral-500 hover:text-red-400 rounded-xl transition-colors ${isCollapsed ? "justify-center py-3.5" : "gap-3 px-4 py-3"}`}
+          className={`w-full flex items-center relative group text-sm font-medium hover:bg-red-500/10 text-neutral-500 hover:text-red-400 rounded-xl transition-colors ${isCollapsed ? "justify-center py-3.5" : "gap-3 px-4 py-3"}`}
         >
           <LogOut className="w-5 h-5 shrink-0" />
           {!isCollapsed && <span className="truncate">Sign Out</span>}
+          {isCollapsed && (
+            <div className="absolute left-16 bg-neutral-900 border border-red-900/50 text-red-400 px-2 py-1 rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity font-medium shadow-xl z-50">
+              Sign Out
+            </div>
+          )}
         </button>
+
       </div>
     </motion.div>
   );
