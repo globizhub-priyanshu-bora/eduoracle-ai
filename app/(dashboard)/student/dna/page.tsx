@@ -3,15 +3,24 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Dna, Brain, Target, ArrowRight, ArrowLeft, Loader2, CheckCircle2, XCircle, Activity, Eye, TrendingUp, Zap
+  Dna, Brain, Target, ArrowRight, ArrowLeft, Loader2, CheckCircle2, XCircle, Activity, Eye, TrendingUp, Zap, Sparkles
 } from "lucide-react";
 import Link from "next/link";
 import { generateDNAQuizAction, analyzeDNAResultsAction } from "@/actions/student.actions";
 
 const DNA_LEVELS = ["Low", "Moderate", "High", "Ultra"];
 
+const TOPICS = [
+  { id: "Concept Understanding", icon: Brain, color: "blue", desc: "Test your core architectural knowledge and theory." },
+  { id: "Problem Solving", icon: Target, color: "purple", desc: "Evaluate your algorithmic efficiency and optimization." },
+  { id: "Analytical Ability", icon: Activity, color: "amber", desc: "Assess your logic, deduction, and mathematical speed." },
+  { id: "Memory Retention", icon: Eye, color: "emerald", desc: "Measure your short-term data and visual recall." }
+];
+
 export default function LearningDNAPage() {
-  const [step, setStep] = useState<string>("loading_quiz");
+  // Navigation Steps: "topic_selection" -> "loading_quiz" -> "quiz" -> "loading_analysis" -> "result"
+  const [step, setStep] = useState<string>("topic_selection");
+  const [selectedTopic, setSelectedTopic] = useState<string>("");
 
   const [quizData, setQuizData] = useState<any[]>([]);
   const [currentQIndex, setCurrentQIndex] = useState(0);
@@ -25,14 +34,13 @@ export default function LearningDNAPage() {
   const [showVisualPrompt, setShowVisualPrompt] = useState(false);
   const [timeLeft, setTimeLeft] = useState(3);
 
-  // --- INIT ---
-  useEffect(() => {
-    fetchQuiz();
-  }, []);
+  // --- ACTIONS ---
 
-  const fetchQuiz = async () => {
+  const handleSelectTopic = async (topic: string) => {
+    setSelectedTopic(topic);
     setStep("loading_quiz");
-    const res = await generateDNAQuizAction(); // No params needed now!
+    
+    const res = await generateDNAQuizAction(topic);
     if (res.success && res.data) {
       setQuizData(res.data);
       setCurrentQIndex(0);
@@ -41,6 +49,7 @@ export default function LearningDNAPage() {
       setStep("quiz");
     } else {
       alert("Failed to initialize diagnostic engine.");
+      setStep("topic_selection");
     }
   };
 
@@ -74,7 +83,6 @@ export default function LearningDNAPage() {
       setCurrentQIndex(nextIdx);
       setupQuestionEnvironment(quizData[nextIdx]);
     } else {
-      // 🚀 CALCULATE THE BREAKDOWN 🚀
       setStep("loading_analysis");
       let score = 0;
       
@@ -98,8 +106,8 @@ export default function LearningDNAPage() {
       
       setFinalScore(score);
       
-      // Pass the breakdown to the AI so it can determine the DNA!
-      const res = await analyzeDNAResultsAction(breakdown, score, quizData.length);
+      // Send the breakdown and the chosen topic to the AI
+      const res = await analyzeDNAResultsAction(breakdown, score, quizData.length, selectedTopic);
       
       if (res.success && res.data) {
         setAnalysis(res.data);
@@ -119,22 +127,84 @@ export default function LearningDNAPage() {
         <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3">
           <Dna className="w-8 h-8 text-purple-400" /> Cognitive DNA Profiler
         </h1>
-        <p className="text-neutral-400 mt-2">Complete this baseline diagnostic to reveal your learning architecture.</p>
+        <p className="text-neutral-400 mt-2">Select a focus area to generate a custom assessment and reveal your learning architecture.</p>
       </motion.header>
 
       <div className="max-w-5xl mx-auto relative z-10">
         <AnimatePresence mode="wait">
 
-          {/* LOADERS */}
+          {/* ========================================== */}
+          {/* STEP 1: TOPIC SELECTION HUB                  */}
+          {/* ========================================== */}
+          {step === "topic_selection" && (
+            <motion.div key="selection" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, y: -20 }} className="space-y-6">
+              
+              {/* Full Profile Button */}
+              <button 
+                onClick={() => handleSelectTopic("Full Profile")}
+                className="w-full relative group overflow-hidden rounded-3xl bg-black/40 border border-purple-500/30 p-8 md:p-10 text-left hover:border-purple-400 transition-all shadow-[0_0_30px_rgba(168,85,247,0.1)]"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-blue-600/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="flex items-center justify-between relative z-10">
+                  <div>
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 text-xs font-bold uppercase tracking-widest mb-4">
+                      <Sparkles className="w-4 h-4" /> Recommended
+                    </div>
+                    <h2 className="text-2xl md:text-3xl font-black text-white mb-2">Full Cognitive Assessment</h2>
+                    <p className="text-neutral-400 max-w-xl">Run a complete 5-point diagnostic across all cognitive dimensions to generate your absolute baseline DNA.</p>
+                  </div>
+                  <div className="hidden sm:flex w-16 h-16 rounded-full bg-white/5 items-center justify-center group-hover:scale-110 transition-transform">
+                    <ArrowRight className="w-8 h-8 text-purple-400" />
+                  </div>
+                </div>
+              </button>
+
+              <div className="flex items-center gap-4 py-4">
+                <div className="flex-1 h-px bg-white/10" />
+                <div className="text-xs text-neutral-500 font-bold uppercase tracking-widest">Or Isolate a Weakness</div>
+                <div className="flex-1 h-px bg-white/10" />
+              </div>
+
+              {/* Individual Topics Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {TOPICS.map((t) => {
+                  const Icon = t.icon;
+                  return (
+                    <button 
+                      key={t.id}
+                      onClick={() => handleSelectTopic(t.id)}
+                      className="group flex flex-col items-start p-6 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-left relative overflow-hidden"
+                    >
+                      <div className={`absolute -right-4 -top-4 w-24 h-24 bg-${t.color}-500/10 rounded-full blur-2xl group-hover:bg-${t.color}-500/20 transition-colors`} />
+                      <div className={`w-12 h-12 rounded-xl bg-${t.color}-500/20 flex items-center justify-center border border-${t.color}-500/30 mb-4`}>
+                        <Icon className={`w-6 h-6 text-${t.color}-400`} />
+                      </div>
+                      <h3 className="text-xl font-bold text-white mb-2">{t.id}</h3>
+                      <p className="text-sm text-neutral-400">{t.desc}</p>
+                    </button>
+                  );
+                })}
+              </div>
+
+            </motion.div>
+          )}
+
+          {/* ========================================== */}
+          {/* LOADERS                                      */}
+          {/* ========================================== */}
           {(step === "loading_quiz" || step === "loading_analysis") && (
             <motion.div key="loader" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center py-32 text-center">
               <Loader2 className="w-16 h-16 text-purple-500 animate-spin mb-6" />
-              <h2 className="text-2xl font-bold text-white mb-2">{step === "loading_quiz" ? "Initializing Diagnostic Engine..." : "Decoding Neural Patterns..."}</h2>
+              <h2 className="text-2xl font-bold text-white mb-2">
+                {step === "loading_quiz" ? `Initializing ${selectedTopic} Engine...` : "Decoding Neural Patterns..."}
+              </h2>
               <p className="text-neutral-400">{step === "loading_analysis" && "Cross-referencing answers to extract your Cognitive DNA."}</p>
             </motion.div>
           )}
 
-          {/* STEP 1: QUIZ INTERFACE */}
+          {/* ========================================== */}
+          {/* STEP 2: QUIZ INTERFACE                       */}
+          {/* ========================================== */}
           {step === "quiz" && quizData.length > 0 && (
             <motion.div key="quiz" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="max-w-3xl mx-auto">
               
@@ -197,49 +267,56 @@ export default function LearningDNAPage() {
             </motion.div>
           )}
 
-          {/* STEP 2: DYNAMIC RESULTS UI */}
+          {/* ========================================== */}
+          {/* STEP 3: DYNAMIC RESULTS UI                   */}
+          {/* ========================================== */}
           {step === "result" && analysis && (
             <motion.div key="result" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-8">
               
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 
-                {/* 🌟 NEW: THE EXTRACTED DNA PROFILE (Left Panel) */}
+                {/* 🌟 THE EXTRACTED DNA PROFILE (Left Panel) */}
                 <div className="lg:col-span-5 bg-black/40 border border-white/10 rounded-3xl p-6 md:p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-[50px] pointer-events-none"></div>
                   
                   <div className="text-center mb-8 pb-8 border-b border-white/10">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-bold uppercase tracking-widest mb-3">
-                      <Activity className="w-3 h-3" /> System Diagnosis
+                      <Activity className="w-3 h-3" /> {selectedTopic === "Full Profile" ? "System Diagnosis" : "Focused Diagnosis"}
                     </div>
                     <h2 className="text-3xl font-black text-white mb-2">{analysis.overallDNA}</h2>
                     <div className="text-neutral-400 text-sm">Score: <strong className="text-white">{finalScore}/{quizData.length}</strong></div>
                   </div>
 
-                  <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-6">Extracted Cognitive Traits</h3>
+                  <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-6">Calculated Cognitive Traits</h3>
                   
                   <div className="space-y-6">
                     {[
-                      { key: 'concept', label: 'Concept Logic', color: 'blue' },
-                      { key: 'problemSolving', label: 'Problem Solving', color: 'purple' },
-                      { key: 'analytical', label: 'Analytical Speed', color: 'amber' },
-                      { key: 'memory', label: 'Data Retention', color: 'emerald' },
-                    ].map((trait) => (
-                      <div key={trait.key} className="space-y-2">
-                        <div className="flex justify-between text-sm font-bold">
-                          <span className="text-neutral-300">{trait.label}</span>
-                          <span className={`text-${trait.color}-400`}>{DNA_LEVELS[(analysis.traits[trait.key] || 2) - 1]}</span>
+                      { key: 'concept', label: 'Concept Logic', color: 'blue', name: 'Concept Understanding' },
+                      { key: 'problemSolving', label: 'Problem Solving', color: 'purple', name: 'Problem Solving' },
+                      { key: 'analytical', label: 'Analytical Speed', color: 'amber', name: 'Analytical Ability' },
+                      { key: 'memory', label: 'Data Retention', color: 'emerald', name: 'Memory Retention' },
+                    ].map((trait) => {
+                      // If they picked a specific topic, only highlight that one. Dim the others.
+                      const isTested = selectedTopic === "Full Profile" || selectedTopic === trait.name;
+                      const val = isTested ? (analysis.traits[trait.key] || 2) : 0;
+                      
+                      return (
+                        <div key={trait.key} className={`space-y-2 ${!isTested && "opacity-30 grayscale"}`}>
+                          <div className="flex justify-between text-sm font-bold">
+                            <span className="text-neutral-300">{trait.label} {!isTested && "(N/A)"}</span>
+                            {isTested && <span className={`text-${trait.color}-400`}>{DNA_LEVELS[val - 1]}</span>}
+                          </div>
+                          <div className="w-full h-2 bg-neutral-800 rounded-lg overflow-hidden">
+                             <motion.div 
+                               initial={{ width: 0 }} 
+                               animate={{ width: isTested ? `${(val / 4) * 100}%` : '0%' }} 
+                               transition={{ duration: 1.5, delay: 0.5, ease: "easeOut" }}
+                               className={`h-full bg-${trait.color}-500 rounded-full shadow-[0_0_10px_rgba(var(--${trait.color}-500),0.8)]`} 
+                             />
+                          </div>
                         </div>
-                        {/* Disabled Visual Slider showing their deduced capability */}
-                        <div className="w-full h-2 bg-neutral-800 rounded-lg overflow-hidden">
-                           <motion.div 
-                             initial={{ width: 0 }} 
-                             animate={{ width: `${((analysis.traits[trait.key] || 2) / 4) * 100}%` }} 
-                             transition={{ duration: 1.5, delay: 0.5, ease: "easeOut" }}
-                             className={`h-full bg-${trait.color}-500 rounded-full shadow-[0_0_10px_rgba(var(--${trait.color}-500),0.8)]`} 
-                           />
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -292,8 +369,10 @@ export default function LearningDNAPage() {
                     );
                   })}
                 </div>
-                <button onClick={fetchQuiz} className="w-full mt-8 py-4 bg-white/10 hover:bg-white/20 border border-white/10 text-white rounded-xl font-bold transition-all">
-                  Re-Calibrate DNA (Retake)
+                
+                {/* Reset Button */}
+                <button onClick={() => { setStep("topic_selection"); setQuizData([]); }} className="w-full mt-8 py-4 bg-white/10 hover:bg-white/20 border border-white/10 text-white rounded-xl font-bold transition-all">
+                  Run Another Diagnostic
                 </button>
               </div>
 
