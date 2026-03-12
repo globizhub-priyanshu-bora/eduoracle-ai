@@ -270,3 +270,42 @@ export async function analyzeVisionQueryAction(base64Image: string, mimeType: st
     return { success: false, error: "Failed to analyze image. Check API key and image size." };
   }
 }
+
+// ------------------------------------------------------------------
+// 8. CGPA PREDICTION ENGINE
+// ------------------------------------------------------------------
+export async function calculateCGPAPredictionAction(formData: {
+  pastCGPA: number;
+  internal: number;
+  attendance: number;
+  studyHours: number;
+  assignments: number;
+}) {
+  try {
+    // 1. Normalize study hours (assuming 6hrs is the 100% threshold)
+    let studyScore = (formData.studyHours / 6) * 100;
+    if (studyScore > 100) studyScore = 100;
+
+    // 2. The Weighted Calculation
+    const predictionScore = 
+      (formData.pastCGPA * 10 * 0.40) +  // 40% weight
+      (formData.internal * 0.30) +       // 30% weight
+      (formData.attendance * 0.10) +     // 10% weight
+      (studyScore * 0.15) +              // 15% weight
+      (formData.assignments * 0.05);     // 5% weight
+
+    // 3. Format the results
+    const predictedCGPA = Number((predictionScore / 10).toFixed(2));
+    const percentage = Number(predictionScore.toFixed(2));
+
+    // Optional: You could save this to the DB here if you wanted to track their predictions over time!
+    
+    return { 
+      success: true, 
+      data: { percentage, cgpa: predictedCGPA } 
+    };
+  } catch (error) {
+    console.error("Action Error - Predict CGPA:", error);
+    return { success: false, error: "Failed to calculate prediction" };
+  }
+}

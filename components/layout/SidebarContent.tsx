@@ -25,6 +25,7 @@ import {
   HelpCircle,
   ChevronLeft,
   ChevronRight,
+  Cloud,
 } from "lucide-react";
 
 export default function SidebarContent() {
@@ -39,6 +40,7 @@ export default function SidebarContent() {
     { name: "Academic GPS", href: "/student/gps", icon: Map },
     { name: "Doubt Tutor (Vision)", href: "/student/tutor", icon: Camera },
     { name: "My Exams", href: "/student/exams", icon: Book },
+    { name: "CGPA Predictor", href: "/student/predictor", icon: GraduationCap },
     {
       name: "Career Goals",
       href: "/student/career-goals",
