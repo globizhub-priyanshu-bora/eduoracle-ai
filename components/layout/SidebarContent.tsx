@@ -26,7 +26,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Dna,
-  Home, // 🌟 ADDED HOME ICON
+  Home,
+  File, // 🌟 ADDED HOME ICON
 } from "lucide-react";
 
 export default function SidebarContent() {
@@ -43,6 +44,7 @@ export default function SidebarContent() {
     { name: "My Exams", href: "/student/exams", icon: Book },
     { name: "CGPA Predictor", href: "/student/predictor", icon: GraduationCap },
     { name: "Learning DNA", href: "/student/dna", icon: Dna },
+    { name: "Oracle Q. Paper Predictor", href: "/student/oracle", icon: File },
     {
       name: "Career Goals",
       href: "/student/career-goals",
