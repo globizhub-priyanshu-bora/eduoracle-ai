@@ -3,487 +3,341 @@
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  ArrowLeft, Timer, Trophy, CheckCircle2, XCircle, Loader2, Trash2, 
-  Flame, FileText, ChevronLeft, Linkedin, Download, Medal, ShieldCheck
-} from "lucide-react";
+import { ArrowLeft, Timer, Trophy, CheckCircle2, XCircle, Loader2, Download, ShieldCheck, Linkedin, FileText, ChevronLeft } from "lucide-react";
 
-// --- THE SECURE QUESTION DATABASE ---
+// --- THE GRAND DATABASE: 10 Questions for ALL 14 Branches ---
 const DOMAIN_QUESTIONS: Record<string, any[]> = {
-  civil: [
-    { id: 1, difficulty: "EASY", question: "What is the primary purpose of a slump test in concrete?", options: ["To determine compressive strength", "To measure workability", "To check water-cement ratio", "To find the setting time"], correctAnswer: 1 },
-    { id: 2, difficulty: "EASY", question: "According to Hooke's Law, within the elastic limit, stress is directly proportional to:", options: ["Strain", "Area", "Volume", "Temperature"], correctAnswer: 0 },
-    { id: 3, difficulty: "MEDIUM", question: "What is the theoretical maximum value of Poisson's ratio for any macroscopic isotropic material?", options: ["0.25", "0.33", "0.50", "1.00"], correctAnswer: 2 },
-    { id: 4, difficulty: "MEDIUM", question: "In fluid mechanics, what does a Reynolds number of less than 2000 signify in a pipe flow?", options: ["Turbulent flow", "Transitional flow", "Laminar flow", "Supersonic flow"], correctAnswer: 2 },
-    { id: 5, difficulty: "MEDIUM", question: "The bending moment on a simply supported beam carrying a uniformly distributed load is maximum at:", options: ["The supports", "The center", "Quarter span", "It is constant throughout"], correctAnswer: 1 },
-    { id: 6, difficulty: "HARD", question: "Which equation is primarily used to measure the flow of water through a porous medium like soil?", options: ["Bernoulli's Equation", "Navier-Stokes Equation", "Darcy's Law", "Manning's Formula"], correctAnswer: 2 },
-    { id: 7, difficulty: "HARD", question: "Biochemical Oxygen Demand (BOD) is a measure of:", options: ["Dissolved oxygen in water", "Organic matter decomposed by bacteria", "Chemical toxicity", "pH level of wastewater"], correctAnswer: 1 },
-    { id: 8, difficulty: "MEDIUM", question: "In surveying, the angle between the true meridian and the magnetic meridian is called:", options: ["Magnetic Declination", "Dip", "Azimuth", "Local Attraction"], correctAnswer: 0 },
-    { id: 9, difficulty: "EASY", question: "What is the standard size of a concrete cube used for compressive strength testing?", options: ["100mm x 100mm x 100mm", "150mm x 150mm x 150mm", "200mm x 200mm x 200mm", "250mm x 250mm x 250mm"], correctAnswer: 1 },
-    { id: 10, difficulty: "HARD", question: "The process of removal of water from the soil pores under sustained load is known as:", options: ["Compaction", "Consolidation", "Permeability", "Liquefaction"], correctAnswer: 1 }
+  // ENGINEERING
+  "civil": [
+    { id: 1, difficulty: "EASY", question: "Primary purpose of a slump test?", options: ["Strength", "Workability", "Ratio", "Density"], correctAnswer: 1 },
+    { id: 2, difficulty: "MEDIUM", question: "Maximum value of Poisson's ratio?", options: ["0.25", "0.33", "0.50", "1.00"], correctAnswer: 2 },
+    { id: 3, difficulty: "HARD", question: "Darcy's Law defines flow through?", options: ["Pipes", "Porous media", "Turbines", "Channels"], correctAnswer: 1 },
+    { id: 4, difficulty: "EASY", question: "Instrument used for mapping distances?", options: ["Alidade", "Opisometer", "Compass", "Clinometer"], correctAnswer: 1 },
+    { id: 5, difficulty: "MEDIUM", question: "Point of contraflexure is in?", options: ["Cantilever", "Overhanging", "Fixed", "Simply supported"], correctAnswer: 1 },
+    { id: 6, difficulty: "HARD", question: "Minimum grade for RCC as per IS 456?", options: ["M15", "M20", "M25", "M30"], correctAnswer: 1 },
+    { id: 7, difficulty: "EASY", question: "Standard size of brick in cm?", options: ["19x9x9", "20x10x10", "18x9x9", "22x10x10"], correctAnswer: 0 },
+    { id: 8, difficulty: "MEDIUM", question: "1 link in a Gunter's chain is (inches)?", options: ["6.6", "7.92", "8.5", "12"], correctAnswer: 1 },
+    { id: 9, difficulty: "HARD", question: "Bulking of sand is caused by?", options: ["Clay", "Surface tension", "Moisture", "Heat"], correctAnswer: 2 },
+    { id: 10, difficulty: "MEDIUM", question: "Unit of Kinematic Viscosity?", options: ["Poise", "Stoke", "Newton", "Pascal"], correctAnswer: 1 }
   ],
-  electrical: [
-    { id: 11, difficulty: "EASY", question: "Why are the cores of transformers laminated?", options: ["To reduce copper losses", "To reduce hysteresis losses", "To reduce eddy current losses", "To improve cooling"], correctAnswer: 2 },
-    { id: 12, difficulty: "EASY", question: "According to Kirchhoff's Current Law (KCL), the algebraic sum of currents meeting at a node is:", options: ["Infinite", "Zero", "Equal to the voltage", "Dependent on resistance"], correctAnswer: 1 },
-    { id: 13, difficulty: "MEDIUM", question: "What is the primary function of a Buchholz relay in a power transformer?", options: ["Voltage regulation", "Cooling control", "Protection against internal faults", "Overload protection"], correctAnswer: 2 },
-    { id: 14, difficulty: "MEDIUM", question: "In an AC circuit, the ratio of real power to apparent power is known as:", options: ["Form factor", "Peak factor", "Power factor", "Quality factor"], correctAnswer: 2 },
-    { id: 15, difficulty: "MEDIUM", question: "What happens to the slip of an induction motor when it operates at exactly synchronous speed?", options: ["It becomes 1", "It becomes zero", "It becomes infinite", "It becomes negative"], correctAnswer: 1 },
-    { id: 16, difficulty: "HARD", question: "Which effect causes alternating current (AC) to distribute itself unequally, concentrating near the surface of the conductor?", options: ["Ferranti Effect", "Proximity Effect", "Skin Effect", "Corona Effect"], correctAnswer: 2 },
-    { id: 17, difficulty: "HARD", question: "Thevenin's Theorem replaces a complex linear network with an equivalent circuit consisting of:", options: ["A current source in parallel with a resistor", "A voltage source in series with a resistor", "A voltage source in parallel with a capacitor", "Multiple voltage sources"], correctAnswer: 1 },
-    { id: 18, difficulty: "MEDIUM", question: "A Zener diode is primarily used for:", options: ["Amplification", "Rectification", "Voltage regulation", "Signal oscillation"], correctAnswer: 2 },
-    { id: 19, difficulty: "EASY", question: "What is the unit of reactive power in an AC system?", options: ["Watts (W)", "Volt-Amperes (VA)", "Volt-Amperes Reactive (VAR)", "Joules (J)"], correctAnswer: 2 },
-    { id: 20, difficulty: "HARD", question: "The synchronous speed of a 4-pole, 50 Hz AC motor is:", options: ["1000 RPM", "1500 RPM", "3000 RPM", "1200 RPM"], correctAnswer: 1 }
+  "electrical": [
+    { id: 11, difficulty: "EASY", question: "Why are transformer cores laminated?", options: ["Copper loss", "Eddy current", "Heat", "Cooling"], correctAnswer: 1 },
+    { id: 12, difficulty: "MEDIUM", question: "Kirchhoff's Current Law is based on?", options: ["Energy", "Charge", "Mass", "Power"], correctAnswer: 1 },
+    { id: 13, difficulty: "HARD", question: "Power factor of pure inductor?", options: ["Zero", "0.5", "1.0", "Infinity"], correctAnswer: 0 },
+    { id: 14, difficulty: "EASY", question: "Unit of frequency in India?", options: ["40Hz", "50Hz", "60Hz", "100Hz"], correctAnswer: 1 },
+    { id: 15, difficulty: "MEDIUM", question: "Buchholz relay is used in?", options: ["Motors", "Generators", "Transformers", "Lines"], correctAnswer: 2 },
+    { id: 16, difficulty: "HARD", question: "Thevenin voltage is?", options: ["Short circuit", "Open circuit", "Input", "Load"], correctAnswer: 1 },
+    { id: 17, difficulty: "EASY", question: "Material used in heaters?", options: ["Copper", "Nichrome", "Tungsten", "Silver"], correctAnswer: 1 },
+    { id: 18, difficulty: "MEDIUM", question: "Line voltage in star connection?", options: ["Phase", "√3 * Phase", "Phase / √3", "3 * Phase"], correctAnswer: 1 },
+    { id: 19, difficulty: "HARD", question: "Zener diode primary use?", options: ["Amplifier", "Regulator", "Switch", "Rectifier"], correctAnswer: 1 },
+    { id: 20, difficulty: "MEDIUM", question: "Unit of Reactive Power?", options: ["Watt", "VAR", "VA", "Joule"], correctAnswer: 1 }
   ],
-  mechanical: [
-    { id: 21, difficulty: "MEDIUM", question: "Which thermodynamic cycle has the highest theoretical efficiency operating between two temperature limits?", options: ["Otto Cycle", "Rankine Cycle", "Carnot Cycle", "Diesel Cycle"], correctAnswer: 2 },
-    { id: 22, difficulty: "EASY", question: "According to Newton's Law of Viscosity, shear stress is directly proportional to:", options: ["Velocity", "Pressure", "Rate of shear strain", "Temperature"], correctAnswer: 2 },
-    { id: 23, difficulty: "MEDIUM", question: "What does the area under a Stress-Strain curve up to the fracture point represent?", options: ["Modulus of Elasticity", "Toughness", "Resilience", "Yield Strength"], correctAnswer: 1 },
-    { id: 24, difficulty: "HARD", question: "In heat transfer, thermal radiation is governed by which law?", options: ["Fourier's Law", "Newton's Law of Cooling", "Stefan-Boltzmann Law", "Fick's Law"], correctAnswer: 2 },
-    { id: 25, difficulty: "EASY", question: "The ratio of the speed of an object to the local speed of sound is called the:", options: ["Reynolds Number", "Mach Number", "Prandtl Number", "Nusselt Number"], correctAnswer: 1 },
-    { id: 26, difficulty: "MEDIUM", question: "Which heat treatment process is used primarily to relieve internal stresses and soften the metal?", options: ["Quenching", "Tempering", "Annealing", "Case hardening"], correctAnswer: 2 },
-    { id: 27, difficulty: "HARD", question: "Euler's formula for column buckling is applicable only for:", options: ["Short columns", "Long columns", "Intermediate columns", "Composite columns"], correctAnswer: 1 },
-    { id: 28, difficulty: "HARD", question: "Bernoulli's equation is fundamentally derived from the principle of conservation of:", options: ["Mass", "Momentum", "Energy", "Angular Momentum"], correctAnswer: 2 },
-    { id: 29, difficulty: "EASY", question: "In a standard 4-stroke SI engine, the spark plug ignites the fuel-air mixture just before the end of the:", options: ["Intake stroke", "Compression stroke", "Power stroke", "Exhaust stroke"], correctAnswer: 1 },
-    { id: 30, difficulty: "MEDIUM", question: "A thermodynamic process in which entropy remains constant is called:", options: ["Isothermal", "Isobaric", "Isochoric", "Isentropic"], correctAnswer: 3 }
+  "mechanical": [
+    { id: 21, difficulty: "EASY", question: "Cycle for petrol engines?", options: ["Diesel", "Otto", "Carnot", "Rankine"], correctAnswer: 1 },
+    { id: 22, difficulty: "MEDIUM", question: "Ratio of stress to strain?", options: ["Bulk", "Poisson", "Youngs", "Rigidity"], correctAnswer: 2 },
+    { id: 23, difficulty: "HARD", question: "Radiation heat transfer power of T?", options: ["1", "2", "3", "4"], correctAnswer: 3 },
+    { id: 24, difficulty: "EASY", question: "Process to soften steel?", options: ["Quenching", "Annealing", "Tempering", "Nitriding"], correctAnswer: 1 },
+    { id: 25, difficulty: "MEDIUM", question: "Mach number 1 signifies?", options: ["Subsonic", "Sonic", "Supersonic", "Hypersonic"], correctAnswer: 1 },
+    { id: 26, difficulty: "HARD", question: "Material with highest conductivity?", options: ["Steel", "Silver", "Gold", "Copper"], correctAnswer: 1 },
+    { id: 27, difficulty: "EASY", question: "Unit of Force?", options: ["Joule", "Pascal", "Newton", "Watt"], correctAnswer: 2 },
+    { id: 28, difficulty: "MEDIUM", question: "Isentropic process means?", options: ["Same temp", "Same pressure", "Same entropy", "Same volume"], correctAnswer: 2 },
+    { id: 29, difficulty: "HARD", question: "Failure theory for ductile materials?", options: ["St. Venant", "Tresca", "Rankine", "Haigh"], correctAnswer: 1 },
+    { id: 30, difficulty: "MEDIUM", question: "Efficiency of Carnot engine depends on?", options: ["Working fluid", "Temp limits", "Speed", "Load"], correctAnswer: 1 }
   ],
-  electronics: [
-    { id: 31, difficulty: "EASY", question: "What is the primary advantage of a Universal Gate (like NAND or NOR)?", options: ["They consume zero power", "Any boolean function can be implemented using them alone", "They have infinite input impedance", "They are naturally analog"], correctAnswer: 1 },
-    { id: 32, difficulty: "MEDIUM", question: "According to the Nyquist-Shannon sampling theorem, the sampling frequency must be at least:", options: ["Equal to the maximum signal frequency", "Twice the maximum signal frequency", "Half the maximum signal frequency", "Ten times the maximum signal frequency"], correctAnswer: 1 },
-    { id: 33, difficulty: "EASY", question: "An ideal Operational Amplifier (Op-Amp) has an Input Impedance of:", options: ["Zero", "100 Ohms", "Infinite", "Negative value"], correctAnswer: 2 },
-    { id: 34, difficulty: "MEDIUM", question: "Which digital circuit is used to select one of many input data lines and forward it to a single output line?", options: ["Decoder", "Multiplexer (MUX)", "Demultiplexer", "Encoder"], correctAnswer: 1 },
-    { id: 35, difficulty: "HARD", question: "In a Bipolar Junction Transistor (BJT), the base region is heavily doped to ensure:", options: ["High current gain", "Low recombination rate", "High breakdown voltage", "The base is lightly doped"], correctAnswer: 3 },
-    { id: 36, difficulty: "MEDIUM", question: "What does CMRR stand for in the context of operational amplifiers?", options: ["Common-Mode Rejection Ratio", "Current-Mode Resistance Ratio", "Capacitive-Mode Reactive Ratio", "Circuit-Mode Relay Ratio"], correctAnswer: 0 },
-    { id: 37, difficulty: "EASY", question: "Which flip-flop is known as the 'Delay' flip-flop?", options: ["SR Flip-Flop", "JK Flip-Flop", "T Flip-Flop", "D Flip-Flop"], correctAnswer: 3 },
-    { id: 38, difficulty: "HARD", question: "In Amplitude Modulation (AM), if the modulation index is greater than 1, it results in:", options: ["Perfect transmission", "Over-modulation and distortion", "Zero bandwidth", "Frequency hopping"], correctAnswer: 1 },
-    { id: 39, difficulty: "HARD", question: "Maxwell's equations fundamentally describe the behavior of:", options: ["Quantum mechanics", "Thermodynamics", "Electromagnetic fields", "Nuclear strong forces"], correctAnswer: 2 },
-    { id: 40, difficulty: "MEDIUM", question: "What is the core difference between a Microprocessor and a Microcontroller?", options: ["Microcontrollers lack ALUs", "Microcontrollers integrate CPU, memory, and I/O on a single chip", "Microprocessors are only used for analog signals", "Microprocessors are always slower"], correctAnswer: 1 }
+  "electronics": [
+    { id: 31, difficulty: "EASY", question: "Universal logic gate?", options: ["AND", "OR", "NAND", "XOR"], correctAnswer: 2 },
+    { id: 32, difficulty: "MEDIUM", question: "Ideal Op-Amp input impedance?", options: ["Zero", "1k", "1M", "Infinite"], correctAnswer: 3 },
+    { id: 33, difficulty: "HARD", question: "Maxwell equations relate to?", options: ["Gravity", "Fluids", "Electromagnetism", "Nuclear"], correctAnswer: 2 },
+    { id: 34, difficulty: "EASY", question: "Binary 1010 in decimal?", options: ["8", "10", "12", "14"], correctAnswer: 1 },
+    { id: 35, difficulty: "MEDIUM", question: "CMRR should be?", options: ["Zero", "Unity", "Infinite", "Negative"], correctAnswer: 2 },
+    { id: 36, difficulty: "HARD", question: "Least bandwidth modulation?", options: ["AM", "FM", "SSB", "DSB"], correctAnswer: 2 },
+    { id: 37, difficulty: "EASY", question: "Toggle flip-flop is?", options: ["SR", "D", "T", "JK"], correctAnswer: 2 },
+    { id: 38, difficulty: "MEDIUM", question: "BJT Base is doped?", options: ["Heavy", "Moderate", "Light", "None"], correctAnswer: 2 },
+    { id: 39, difficulty: "HARD", question: "Varactor diode is a?", options: ["Capacitor", "Inductor", "Resistor", "Switch"], correctAnswer: 0 },
+    { id: 40, difficulty: "EASY", question: "Semiconductor material?", options: ["Iron", "Copper", "Silicon", "Aluminum"], correctAnswer: 2 }
+  ],
+  "computer-science": [
+    { id: 41, difficulty: "EASY", question: "Which uses LIFO?", options: ["Queue", "Stack", "Tree", "Graph"], correctAnswer: 1 },
+    { id: 42, difficulty: "MEDIUM", question: "Binary Search complexity?", options: ["O(n)", "O(log n)", "O(n^2)", "O(1)"], correctAnswer: 1 },
+    { id: 43, difficulty: "HARD", question: "Network layer protocol?", options: ["TCP", "IP", "HTTP", "FTP"], correctAnswer: 1 },
+    { id: 44, difficulty: "EASY", question: "Father of Computer Science?", options: ["Gates", "Turing", "Jobs", "Babbage"], correctAnswer: 1 },
+    { id: 45, difficulty: "MEDIUM", question: "Translate IP to MAC?", options: ["DNS", "ARP", "DHCP", "ICMP"], correctAnswer: 1 },
+    { id: 46, difficulty: "HARD", question: "Wait-for graph is used for?", options: ["Paging", "Deadlock", "Hashing", "Sorting"], correctAnswer: 1 },
+    { id: 47, difficulty: "EASY", question: "RAM is what type?", options: ["Volatile", "Non-volatile", "Permanent", "Read-only"], correctAnswer: 0 },
+    { id: 48, difficulty: "MEDIUM", question: "Python function keyword?", options: ["def", "func", "define", "function"], correctAnswer: 0 },
+    { id: 49, difficulty: "HARD", question: "A NoSQL database is?", options: ["MySQL", "MongoDB", "Oracle", "SQLite"], correctAnswer: 1 },
+    { id: 50, difficulty: "EASY", question: "HTML stands for?", options: ["Markup", "Machine", "Management", "Manual"], correctAnswer: 0 }
+  ],
+
+  // MEDICAL
+  "radiology": [
+    { id: 51, difficulty: "EASY", question: "Who discovered X-rays?", options: ["Curie", "Roentgen", "Einstein", "Bohr"], correctAnswer: 1 },
+    { id: 52, difficulty: "MEDIUM", question: "MRI uses which type of waves?", options: ["Gamma", "Radio", "Ultra", "X-ray"], correctAnswer: 1 },
+    { id: 53, difficulty: "HARD", question: "Contrast agent for CT scans?", options: ["Iodine", "Barium", "Gadolinium", "Iron"], correctAnswer: 0 },
+    { id: 54, difficulty: "EASY", question: "Lead aprons protect against?", options: ["Heat", "Radiation", "Bacteria", "Chemicals"], correctAnswer: 1 },
+    { id: 55, difficulty: "MEDIUM", question: "Unit of radiation dose?", options: ["Pascal", "Sievert", "Joule", "Newton"], correctAnswer: 1 },
+    { id: 56, difficulty: "HARD", question: "Hounsfield units for water?", options: ["-1000", "0", "100", "1000"], correctAnswer: 1 },
+    { id: 57, difficulty: "EASY", question: "Ultrasound uses which energy?", options: ["Sound", "Light", "Heat", "Magnetic"], correctAnswer: 0 },
+    { id: 58, difficulty: "MEDIUM", question: "Chest X-ray view for lungs?", options: ["Lateral", "PA View", "AP View", "Oblique"], correctAnswer: 1 },
+    { id: 59, difficulty: "HARD", question: "Half-life of Technetium-99m?", options: ["2 hours", "6 hours", "24 hours", "7 days"], correctAnswer: 1 },
+    { id: 60, difficulty: "EASY", question: "Mammography screens for?", options: ["Heart", "Breast", "Liver", "Brain"], correctAnswer: 1 }
+  ],
+  "dermatology": [
+    { id: 61, difficulty: "EASY", question: "Largest organ of the body?", options: ["Liver", "Skin", "Heart", "Lungs"], correctAnswer: 1 },
+    { id: 62, difficulty: "MEDIUM", question: "Melanin is produced in which layer?", options: ["Dermis", "Epidermis", "Hypodermis", "Fascia"], correctAnswer: 1 },
+    { id: 63, difficulty: "HARD", question: "Tzanck smear is used for?", options: ["Fungus", "Herpes", "Acne", "Cancer"], correctAnswer: 1 },
+    { id: 64, difficulty: "EASY", question: "Treatment for bacterial skin infection?", options: ["Antiviral", "Antibiotic", "Antacid", "Diuretic"], correctAnswer: 1 },
+    { id: 65, difficulty: "MEDIUM", question: "Common name for Urticaria?", options: ["Acne", "Hives", "Moles", "Warts"], correctAnswer: 1 },
+    { id: 66, difficulty: "HARD", question: "Psoriasis is what type of disease?", options: ["Viral", "Autoimmune", "Bacterial", "Parasitic"], correctAnswer: 1 },
+    { id: 67, difficulty: "EASY", question: "Layer that protects against water loss?", options: ["Dermis", "Stratum Corneum", "Hair", "Fat"], correctAnswer: 1 },
+    { id: 68, difficulty: "MEDIUM", question: "ABCDE rule screens for?", options: ["Acne", "Melanoma", "Eczema", "Rashes"], correctAnswer: 1 },
+    { id: 69, difficulty: "HARD", question: "Drug used for severe acne?", options: ["Aspirin", "Isotretinoin", "Insulin", "Ranitidine"], correctAnswer: 1 },
+    { id: 70, difficulty: "EASY", question: "Doctor for hair/skin/nails?", options: ["Urologist", "Dermatologist", "Podiatrist", "Radiologist"], correctAnswer: 1 }
+  ],
+  "general-medicine": [
+    { id: 71, difficulty: "EASY", question: "Instrument for blood pressure?", options: ["Thermometer", "Sphygmomanometer", "Stethoscope", "Otoscope"], correctAnswer: 1 },
+    { id: 72, difficulty: "MEDIUM", question: "Insulin is produced where?", options: ["Liver", "Pancreas", "Spleen", "Kidney"], correctAnswer: 1 },
+    { id: 73, difficulty: "HARD", question: "Definition of Hypertension?", options: ["120/80", ">140/90", "<90/60", "110/70"], correctAnswer: 1 },
+    { id: 74, difficulty: "EASY", question: "Common symptom of Diabetes Mellitus?", options: ["Hunger", "Thirst", "Weight gain", "Both 1 & 2"], correctAnswer: 3 },
+    { id: 75, difficulty: "MEDIUM", question: "Drug for heart attack (Emergency)?", options: ["Aspirin", "Paracetamol", "Antacid", "Antibiotic"], correctAnswer: 0 },
+    { id: 76, difficulty: "HARD", question: "Normal blood pH range?", options: ["6.0-7.0", "7.35-7.45", "7.8-8.5", "5.0-6.0"], correctAnswer: 1 },
+    { id: 77, difficulty: "EASY", question: "Normal adult pulse (bpm)?", options: ["40-50", "60-100", "110-150", "30-40"], correctAnswer: 1 },
+    { id: 78, difficulty: "MEDIUM", question: "Type 1 Diabetes cause?", options: ["Obesity", "Autoimmune", "Sugar intake", "Age"], correctAnswer: 1 },
+    { id: 79, difficulty: "HARD", question: "Hyperkalemia refers to high?", options: ["Sodium", "Potassium", "Calcium", "Magnesium"], correctAnswer: 1 },
+    { id: 80, difficulty: "EASY", question: "Vitamin D source?", options: ["Meat", "Sunlight", "Water", "Salt"], correctAnswer: 1 }
+  ],
+  "pediatrics": [
+    { id: 81, difficulty: "EASY", question: "Neonatal period is first?", options: ["7 days", "28 days", "1 year", "3 months"], correctAnswer: 1 },
+    { id: 82, difficulty: "MEDIUM", question: "Ideal food for first 6 months?", options: ["Cow milk", "Breast milk", "Cereal", "Honey"], correctAnswer: 1 },
+    { id: 83, difficulty: "HARD", question: "Apgar score measures?", options: ["Growth", "Newborn health", "Hearing", "Vision"], correctAnswer: 1 },
+    { id: 84, difficulty: "EASY", question: "Child doctor name?", options: ["Geriatrician", "Pediatrician", "Oncologist", "Surgeon"], correctAnswer: 1 },
+    { id: 85, difficulty: "MEDIUM", question: "Vaccine for Tuberculosis?", options: ["DPT", "BCG", "OPV", "Measles"], correctAnswer: 1 },
+    { id: 86, difficulty: "HARD", question: "Kwashikor is caused by deficiency of?", options: ["Vitamin C", "Protein", "Fats", "Carbs"], correctAnswer: 1 },
+    { id: 87, difficulty: "EASY", question: "Fontanelle is?", options: ["Bone", "Soft spot on head", "Nerve", "Tooth"], correctAnswer: 1 },
+    { id: 88, difficulty: "MEDIUM", question: "Child with barking cough has?", options: ["Asthma", "Croup", "Flu", "Allergy"], correctAnswer: 1 },
+    { id: 89, difficulty: "HARD", question: "Rickets is lack of?", options: ["Iron", "Vitamin D", "Vitamin A", "Zinc"], correctAnswer: 1 },
+    { id: 90, difficulty: "EASY", question: "Is honey safe for infants <1yr?", options: ["Yes", "No", "Only a bit", "Maybe"], correctAnswer: 1 }
+  ],
+  "obgy": [
+    { id: 91, difficulty: "EASY", question: "Duration of normal pregnancy?", options: ["30 weeks", "40 weeks", "48 weeks", "20 weeks"], correctAnswer: 1 },
+    { id: 92, difficulty: "MEDIUM", question: "Test for cervical cancer?", options: ["Blood test", "Pap smear", "Ultrasound", "X-ray"], correctAnswer: 1 },
+    { id: 93, difficulty: "HARD", question: "Term for painful menstruation?", options: ["Amenorrhea", "Dysmenorrhea", "Menopause", "Puberty"], correctAnswer: 1 },
+    { id: 94, difficulty: "EASY", question: "Fertilization occurs where?", options: ["Uterus", "Fallopian tube", "Ovary", "Cervix"], correctAnswer: 1 },
+    { id: 95, difficulty: "MEDIUM", question: "Hormone that sustains pregnancy?", options: ["Estrogen", "Progesterone", "Insulin", "Thyroxin"], correctAnswer: 1 },
+    { id: 96, difficulty: "HARD", question: "Ectopic pregnancy is located?", options: ["In Uterus", "Outside Uterus", "In Liver", "In Bladder"], correctAnswer: 1 },
+    { id: 97, difficulty: "EASY", question: "Normal fetal heart rate?", options: ["60-100", "110-160", "180-220", "40-60"], correctAnswer: 1 },
+    { id: 98, difficulty: "MEDIUM", question: "First milk produced is?", options: ["Lactose", "Colostrum", "Plasma", "Casein"], correctAnswer: 1 },
+    { id: 99, difficulty: "HARD", question: "PCOS primary symptom?", options: ["Fever", "Irregular periods", "Cough", "Rash"], correctAnswer: 1 },
+    { id: 100, difficulty: "EASY", question: "Amniotic fluid surrounds?", options: ["Heart", "Fetus", "Brain", "Lungs"], correctAnswer: 1 }
+  ],
+  "orthopedics": [
+    { id: 101, difficulty: "EASY", question: "Strongest bone in human body?", options: ["Skull", "Femur", "Ribs", "Spine"], correctAnswer: 1 },
+    { id: 102, difficulty: "MEDIUM", question: "Connects bone to bone?", options: ["Tendon", "Ligament", "Muscle", "Nerve"], correctAnswer: 1 },
+    { id: 103, difficulty: "HARD", question: "Colles fracture involves which bone?", options: ["Femur", "Radius", "Tibia", "Humerus"], correctAnswer: 1 },
+    { id: 104, difficulty: "EASY", question: "Smallest bone is in the?", options: ["Toe", "Ear", "Nose", "Finger"], correctAnswer: 1 },
+    { id: 105, difficulty: "MEDIUM", question: "Arthritis affects which system?", options: ["Nervous", "Skeletal/Joints", "Digestive", "Immune"], correctAnswer: 1 },
+    { id: 106, difficulty: "HARD", question: "Scoliosis is curvature of?", options: ["Neck", "Spine", "Legs", "Arms"], correctAnswer: 1 },
+    { id: 107, difficulty: "EASY", question: "Vitamin for healthy bones?", options: ["Vitamin C", "Vitamin D", "Vitamin B", "Vitamin K"], correctAnswer: 1 },
+    { id: 108, difficulty: "MEDIUM", question: "Osteoporosis means bones are?", options: ["Strong", "Porous/Brittle", "Bending", "Growing"], correctAnswer: 1 },
+    { id: 109, difficulty: "HARD", question: "ACL is located in the?", options: ["Shoulder", "Knee", "Ankle", "Wrist"], correctAnswer: 1 },
+    { id: 110, difficulty: "EASY", question: "Cast is used for?", options: ["Cough", "Fracture", "Burn", "Fever"], correctAnswer: 1 }
+  ],
+
+  // COGNITIVE
+  "reasoning": [
+    { id: 111, difficulty: "EASY", question: "Complete: 2, 4, 6, 8, ?", options: ["9", "10", "12", "14"], correctAnswer: 1 },
+    { id: 112, difficulty: "MEDIUM", question: "CAT=24, DOG=26, what is TIGER?", options: ["59", "60", "61", "62"], correctAnswer: 0 },
+    { id: 113, difficulty: "HARD", question: "Clock angle at 3:30?", options: ["75°", "80°", "85°", "90°"], correctAnswer: 0 },
+    { id: 114, difficulty: "EASY", question: "Apple:Red :: Banana:?", options: ["Blue", "Yellow", "Green", "White"], correctAnswer: 1 },
+    { id: 115, difficulty: "MEDIUM", question: "If South=NE, then West=?", options: ["NW", "SE", "NE", "E"], correctAnswer: 1 },
+    { id: 116, difficulty: "HARD", question: "Grandfather's only son?", options: ["Uncle", "Father", "Cousin", "Brother"], correctAnswer: 1 },
+    { id: 117, difficulty: "EASY", question: "Odd one out: Apple, Orange, Potato, Grape", options: ["Apple", "Orange", "Potato", "Grape"], correctAnswer: 2 },
+    { id: 118, difficulty: "MEDIUM", question: "Brother's daughter is your?", options: ["Cousin", "Niece", "Aunt", "Sister"], correctAnswer: 1 },
+    { id: 119, difficulty: "HARD", question: "Six friends in circle... (Logic)?", options: ["A", "C", "D", "E"], correctAnswer: 3 },
+    { id: 120, difficulty: "EASY", question: "Next: A, C, E, G, ?", options: ["H", "I", "J", "K"], correctAnswer: 1 }
+  ],
+  "basic-maths": [
+    { id: 121, difficulty: "EASY", question: "20% of 150 is?", options: ["20", "30", "40", "50"], correctAnswer: 1 },
+    { id: 122, difficulty: "MEDIUM", question: "Square root of 625?", options: ["15", "25", "35", "45"], correctAnswer: 1 },
+    { id: 123, difficulty: "HARD", question: "Average of first 50 natural numbers?", options: ["25", "25.5", "26", "26.5"], correctAnswer: 1 },
+    { id: 124, difficulty: "EASY", question: "5 workers take 12 days, 10 take?", options: ["6", "24", "10", "8"], correctAnswer: 0 },
+    { id: 125, difficulty: "MEDIUM", question: "Profit of 20% on $100 is?", options: ["$10", "$20", "$30", "$40"], correctAnswer: 1 },
+    { id: 126, difficulty: "HARD", question: "Shortest distance between (0,10) and (10,0)?", options: ["10", "20", "10√2", "15"], correctAnswer: 2 },
+    { id: 127, difficulty: "EASY", question: "Sum of angles in triangle?", options: ["90", "180", "270", "360"], correctAnswer: 1 },
+    { id: 128, difficulty: "MEDIUM", question: "If 1=5, 2=10, 3=15, what is 5?", options: ["20", "25", "1", "30"], correctAnswer: 2 },
+    { id: 129, difficulty: "HARD", question: "Probability of 7 with two dice?", options: ["1/6", "1/12", "1/36", "1/4"], correctAnswer: 0 },
+    { id: 130, difficulty: "EASY", question: "Next prime after 7?", options: ["8", "9", "11", "13"], correctAnswer: 2 }
   ],
   "current-affairs": [
-    { id: 41, difficulty: "EASY", question: "Which joint Earth-observing satellite mission was collaboratively developed by NASA and ISRO for launch in the mid-2020s?", options: ["Chandrayaan-4", "NISAR", "AstroSat-2", "Mangalyaan-2"], correctAnswer: 1 },
-    { id: 42, difficulty: "EASY", question: "What is the primary objective of ISRO's Aditya-L1 mission?", options: ["To study the Martian atmosphere", "To collect lunar soil samples", "To study the solar atmosphere and solar winds", "To map the Milky Way galaxy"], correctAnswer: 2 },
-    { id: 43, difficulty: "MEDIUM", question: "In 2024, the European Union passed the world's first comprehensive legal framework for Artificial Intelligence, known as the:", options: ["AI Bill of Rights", "EU AI Act", "Turing Directive", "Algorithmic Accountability Law"], correctAnswer: 1 },
-    { id: 44, difficulty: "MEDIUM", question: "Which country is slated to host the UN Climate Change Conference (COP30) in 2025?", options: ["United Arab Emirates", "India", "Brazil", "United Kingdom"], correctAnswer: 2 },
-    { id: 45, difficulty: "EASY", question: "The ISRO Gaganyaan mission aims to demonstrate:", options: ["Human spaceflight capability to Low Earth Orbit", "A permanent lunar base", "Asteroid deflection technology", "Interplanetary robotic landing"], correctAnswer: 0 },
-    { id: 46, difficulty: "HARD", question: "Which BRICS summit saw the historic expansion of the bloc to include nations like Egypt, Ethiopia, Iran, and the UAE?", options: ["12th Summit (Russia)", "14th Summit (China)", "15th Summit (South Africa)", "16th Summit (Russia)"], correctAnswer: 2 },
-    { id: 47, difficulty: "MEDIUM", question: "India's 'Semicon India Programme' is an initiative designed primarily to:", options: ["Import cheap semiconductors", "Build a robust domestic semiconductor manufacturing ecosystem", "Ban the export of silicon", "Develop quantum computers exclusively"], correctAnswer: 1 },
-    { id: 48, difficulty: "HARD", question: "NASA's Artemis III mission is historically significant because its primary goal is to:", options: ["Send the first humans to Mars", "Land the first humans near the Lunar South Pole", "Retrieve samples from an asteroid", "Launch the James Webb Space Telescope"], correctAnswer: 1 },
-    { id: 49, difficulty: "MEDIUM", question: "Which city is the headquarters of the International Solar Alliance (ISA), an initiative jointly launched by India and France?", options: ["Paris", "New Delhi", "Gurugram", "Geneva"], correctAnswer: 2 },
-    { id: 50, difficulty: "MEDIUM", question: "In the context of recent AI advancements, what does 'LLM' stand for?", options: ["Logical Language Module", "Large Language Model", "Linear Learning Machine", "Linguistic Logic Matrix"], correctAnswer: 1 }
-  ],
-  "reasoning-aptitude": [
-    { id: 51, difficulty: "EASY", question: "If 5 workers can build a wall in 12 days, how many days will 10 workers take to build the same wall?", options: ["6 days", "24 days", "8 days", "10 days"], correctAnswer: 0 },
-    { id: 52, difficulty: "MEDIUM", question: "A train 150m long passes a pole in 15 seconds. What is the speed of the train in km/h?", options: ["36 km/h", "54 km/h", "45 km/h", "30 km/h"], correctAnswer: 0 },
-    { id: 53, difficulty: "MEDIUM", question: "Looking at a portrait, a man said, 'That man's father is my father's son.' Who is in the portrait?", options: ["The man himself", "The man's son", "The man's father", "The man's brother"], correctAnswer: 1 },
-    { id: 54, difficulty: "HARD", question: "The ratio of the ages of A and B is 4:3. After 6 years, the ratio will be 11:9. What is the present age of A?", options: ["16 years", "20 years", "24 years", "28 years"], correctAnswer: 0 },
-    { id: 55, difficulty: "MEDIUM", question: "Complete the series: 2, 6, 12, 20, 30, ?", options: ["40", "42", "44", "46"], correctAnswer: 1 },
-    { id: 56, difficulty: "HARD", question: "In a code, 'ROCK' is written as 'SNDL'. How is 'COLD' written in that same code?", options: ["DPME", "DNME", "DOME", "DQNF"], correctAnswer: 1 },
-    { id: 57, difficulty: "EASY", question: "What is the average of the first five prime numbers?", options: ["5.6", "5.4", "5.8", "6.0"], correctAnswer: 0 },
-    { id: 58, difficulty: "HARD", question: "A sum of money doubles itself in 10 years at simple interest. What is the annual rate of interest?", options: ["5%", "10%", "12%", "15%"], correctAnswer: 1 },
-    { id: 59, difficulty: "MEDIUM", question: "Point A is 10m North of Point B. Point C is 10m East of Point B. What is the shortest distance between A and C?", options: ["10m", "20m", "10√2m", "15m"], correctAnswer: 2 },
-    { id: 60, difficulty: "HARD", question: "Two pipes can fill a tank in 20 and 30 minutes respectively. If both are opened together, how long will it take to fill the tank?", options: ["10 mins", "12 mins", "15 mins", "25 mins"], correctAnswer: 1 }
+    { id: 131, difficulty: "EASY", question: "CEO of Google?", options: ["Nadella", "Pichai", "Cook", "Musk"], correctAnswer: 1 },
+    { id: 132, difficulty: "MEDIUM", question: "Host for COP29 (2024)?", options: ["UAE", "Azerbaijan", "Brazil", "India"], correctAnswer: 1 },
+    { id: 133, difficulty: "HARD", question: "Who won Nobel Peace 2023?", options: ["Malala", "Narges Mohammadi", "Greta", "UNICEF"], correctAnswer: 1 },
+    { id: 134, difficulty: "EASY", question: "ISRO Sun mission?", options: ["Aditya L1", "Chandrayaan", "Mars", "Gaganyaan"], correctAnswer: 0 },
+    { id: 135, difficulty: "MEDIUM", question: "Silicon Valley of India?", options: ["Pune", "Hyderabad", "Bengaluru", "Noida"], correctAnswer: 2 },
+    { id: 136, difficulty: "HARD", question: "NATO 2024 member?", options: ["Ukraine", "Finland", "Sweden", "Switzerland"], correctAnswer: 2 },
+    { id: 137, difficulty: "EASY", question: "Most populous nation in 2024?", options: ["China", "India", "USA", "Russia"], correctAnswer: 1 },
+    { id: 138, difficulty: "MEDIUM", question: "ICC World Cup 2023 Winner?", options: ["India", "Australia", "England", "NZ"], correctAnswer: 1 },
+    { id: 139, difficulty: "HARD", question: "Host of G20 Summit in 2023?", options: ["Brazil", "India", "Indonesia", "Italy"], correctAnswer: 1 },
+    { id: 140, difficulty: "EASY", question: "Capital of Mizoram?", options: ["Kohima", "Aizawl", "Imphal", "Shillong"], correctAnswer: 1 }
   ]
 };
 
-// 🚨 MAIN ENGINE LOGIC 🚨
 function BattleEngine() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const domainParam = searchParams.get("domain") || "current-affairs";
+  const domainParam = searchParams.get("domain") || "civil";
+  const diffParam = (searchParams.get("difficulty") || "medium").toUpperCase();
 
-  const domainTitles: Record<string, string> = {
-    "civil": "Civil Engineering",
-    "electrical": "Electrical Engineering",
-    "mechanical": "Mechanical Engineering",
-    "electronics": "Electronics & Telecomm.",
-    "current-affairs": "Recent Current Affairs",
-    "reasoning-aptitude": "Reasoning & Aptitude"
-  };
-  const displaySyllabus = domainTitles[domainParam] || "ISRO 'SC' Syllabus";
-  
   const [questions, setQuestions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [introStage, setIntroStage] = useState<number | string | null>(null);
-  const [isWrongShake, setIsWrongShake] = useState(false);
-  const [questionResults, setQuestionResults] = useState<boolean[]>([]);
-  const [userAnswers, setUserAnswers] = useState<(number | null)[]>([]);
-  const [streak, setStreak] = useState(0);
-  const [showLogs, setShowLogs] = useState(false);
-  const [showCertificate, setShowCertificate] = useState(false); 
-  const [isDownloading, setIsDownloading] = useState(false);
-
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [score, setScore] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [isFinished, setIsFinished] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(300); // 5 Minutes
-  const [isGarbageCollectUsed, setIsGarbageCollectUsed] = useState(false);
-  const [hiddenOptions, setHiddenOptions] = useState<number[]>([]);
-
-  const currentQuestion = questions[currentQIndex];
-  
-  const finalScore = score + timeLeft;
-  const accuracy = Math.round((questionResults.filter(Boolean).length / questions.length) * 100) || 0;
-
-  const getRank = (scoreVal: number) => {
-    if (scoreVal >= 500) return "Mission Director";
-    if (scoreVal >= 400) return "Scientist 'SC'";
-    if (scoreVal >= 250) return "Senior Researcher";
-    return "Cadet Engineer";
-  };
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  // 🚨 FIXED PDF LOGIC USING PRO VERSION & SAFE CSS 🚨
-  const handleDownloadPDF = async () => {
-    setIsDownloading(true);
-    try {
-      // Using the patched library
-      const { default: html2canvas } = await import('html2canvas-pro');
-      const { default: jsPDF } = await import('jspdf');
-
-      const element = document.getElementById('pdf-template-container');
-      if (!element) return;
-
-      const canvas = await html2canvas(element, { 
-        scale: 2, 
-        backgroundColor: '#0a0a0a', 
-        logging: false, 
-        useCORS: true 
-      });
-      
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
-
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgProps = pdf.getImageProperties(imgData);
-      const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
-      heightLeft -= pdfHeight;
-
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
-        heightLeft -= pdfHeight;
-      }
-
-      pdf.save(`EduOracle_Logs_${displaySyllabus.replace(/\s+/g, '_')}.pdf`);
-    } catch (error) {
-      console.error('Error generating elite PDF', error);
-      alert("System Overload: Unable to compile PDF at this time.");
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
-  const handleShare = async () => {
-    const rank = getRank(finalScore);
-    const shareText = `I just achieved the rank of ${rank} with ${finalScore} XP in the ${displaySyllabus} simulation on EduOracle AI! 🚀 Can you beat my score?`;
-
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: 'EduOracle Mission Debrief', text: shareText });
-      } catch (err) {
-        console.log('Share canceled', err);
-      }
-    } else {
-      navigator.clipboard.writeText(shareText);
-      alert("Mission status copied to clipboard! Opening LinkedIn so you can paste it...");
-      window.open("https://www.linkedin.com/feed/", "_blank");
-    }
-  };
+  const [timeLeft, setTimeLeft] = useState(300);
+  const [questionResults, setQuestionResults] = useState<boolean[]>([]);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [showCertificate, setShowCertificate] = useState(false);
 
   useEffect(() => {
-    const loadedQuestions = DOMAIN_QUESTIONS[domainParam] || DOMAIN_QUESTIONS["current-affairs"];
-    setQuestions(loadedQuestions);
-    setTimeout(() => { setIsLoading(false); setIntroStage(3); }, 1200);
-  }, [domainParam]);
+    const bank = DOMAIN_QUESTIONS[domainParam] || DOMAIN_QUESTIONS["civil"];
+    // Shuffle and pick 10
+    let shuffled = [...bank].sort(() => 0.5 - Math.random());
+    setQuestions(shuffled.slice(0, 10));
+    setTimeout(() => { setIsLoading(false); setIntroStage(3); }, 1000);
+  }, [searchParams]);
 
   useEffect(() => {
     if (introStage === null) return;
-    if (typeof introStage === 'number' && introStage > 1) {
-      setTimeout(() => setIntroStage(introStage - 1), 1000);
-    } else if (introStage === 1) {
-      setTimeout(() => setIntroStage("MISSION START!"), 1000);
-    } else if (introStage === "MISSION START!") {
-      setTimeout(() => setIntroStage(null), 1000);
-    }
+    if (typeof introStage === 'number' && introStage > 1) setTimeout(() => setIntroStage(introStage - 1), 1000);
+    else if (introStage === 1) setTimeout(() => setIntroStage("GO!"), 800);
+    else if (introStage === "GO!") setTimeout(() => setIntroStage(null), 800);
   }, [introStage]);
-
-  const handleFinish = useCallback(() => { setIsFinished(true); }, []);
 
   useEffect(() => {
     if (isFinished || isLoading || introStage !== null) return;
-    if (timeLeft <= 0) { handleFinish(); return; }
-    const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
+    if (timeLeft <= 0) { setIsFinished(true); return; }
+    const timer = setInterval(() => setTimeLeft(p => p - 1), 1000);
     return () => clearInterval(timer);
-  }, [timeLeft, isFinished, isLoading, introStage, handleFinish]);
+  }, [timeLeft, isFinished, isLoading, introStage]);
 
-  const handleGarbageCollect = () => {
-    if (isGarbageCollectUsed || isAnswered || !currentQuestion) return;
-    const incorrectIndices = [0, 1, 2, 3].filter(idx => idx !== currentQuestion.correctAnswer);
-    const shuffled = incorrectIndices.sort(() => 0.5 - Math.random());
-    setHiddenOptions([shuffled[0], shuffled[1]]);
-    setIsGarbageCollectUsed(true);
-  };
-
-  const handleAnswer = (index: number) => {
+  const handleAnswer = (idx: number) => {
     if (isAnswered) return;
-    setSelectedAnswer(index);
+    setSelectedAnswer(idx);
     setIsAnswered(true);
-    setUserAnswers((prev) => [...prev, index]);
-
-    const isCorrect = index === currentQuestion.correctAnswer;
-    setQuestionResults((prev) => [...prev, isCorrect]);
-
-    if (isCorrect) {
-      const newStreak = streak + 1;
-      setStreak(newStreak);
-      setScore((prev) => prev + (newStreak >= 3 ? 15 : 10));
-    } else {
-      setIsWrongShake(true);
-      setTimeout(() => setIsWrongShake(false), 500);
-      setStreak(0); 
-    }
-
+    const correct = idx === questions[currentQIndex].correctAnswer;
+    setQuestionResults(p => [...p, correct]);
+    if (correct) setScore(s => s + 10);
     setTimeout(() => {
-      if (currentQIndex < questions.length - 1) {
-        setCurrentQIndex((prev) => prev + 1);
-        setSelectedAnswer(null);
-        setIsAnswered(false);
-        setHiddenOptions([]); 
-      } else { setIsFinished(true); }
-    }, 2000); 
+      if (currentQIndex < questions.length - 1) { setCurrentQIndex(p => p + 1); setIsAnswered(false); setSelectedAnswer(null); }
+      else setIsFinished(true);
+    }, 1500);
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center p-6">
-        <Loader2 className="w-12 h-12 text-orange-500 animate-spin mb-4" />
-        <h2 className="text-xl font-medium animate-pulse text-orange-400">Booting Mission Telemetry...</h2>
-      </div>
-    );
-  }
+  const handlePDF = async () => {
+    setIsDownloading(true);
+    try {
+      const { default: html2canvas } = await import('html2canvas-pro');
+      const { default: jsPDF } = await import('jspdf');
+      const el = document.getElementById('pdf-template');
+      if (!el) return;
+      const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#0a0a0a', useCORS: true });
+      const pdf = new jsPDF('p', 'px', 'a4');
+      const pdfW = pdf.internal.pageSize.getWidth();
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, pdfW, (canvas.height * pdfW) / canvas.width);
+      pdf.save(`EduOracle_Report.pdf`);
+    } catch { alert("PDF Error"); } finally { setIsDownloading(false); }
+  };
 
-  if (introStage !== null) {
-    return (
-      <div className="min-h-screen bg-neutral-950 flex items-center justify-center relative overflow-hidden">
-        <motion.div key={introStage} initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.5 }} className="text-7xl md:text-9xl font-black text-white z-10">{introStage}</motion.div>
-      </div>
-    );
-  }
+  if (isLoading) return <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center p-6"><Loader2 className="animate-spin text-orange-500 mb-4" /><h2 className="text-orange-400 font-black tracking-widest uppercase text-xs">Initialising...</h2></div>;
+  if (introStage !== null) return <div className="min-h-screen bg-neutral-950 flex items-center justify-center font-black text-9xl text-white italic">{introStage}</div>;
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-50 flex flex-col p-4 sm:p-6 relative overflow-hidden">
-      
-      {/* 🚨 BULLETPROOF HIDDEN PDF TEMPLATE 🚨 */}
-      {/* Using strictly inline colors to prevent html2canvas-pro from failing */}
-      <div className="absolute left-[9999px] top-0 pointer-events-none">
-        <div id="pdf-template-container" className="w-[800px] p-12 font-sans" style={{ backgroundColor: '#0a0a0a', color: '#ffffff' }}>
-          
-          <div className="pb-8 mb-8 text-center relative" style={{ borderBottom: '1px solid rgba(249, 115, 22, 0.3)' }}>
-            <ShieldCheck size={48} color="#f97316" className="mx-auto mb-4" />
-            <h1 className="text-5xl font-black tracking-[0.2em] uppercase" style={{ color: '#f97316' }}>EDUORACLE AI</h1>
-            <h2 className="text-2xl font-bold tracking-[0.3em] uppercase mt-3" style={{ color: '#ffffff' }}>Mission Debrief Report</h2>
-            <div className="inline-block mt-4 px-6 py-2 rounded-full font-medium" style={{ backgroundColor: '#171717', border: '1px solid #262626' }}>
-              Operative: <span style={{ color: '#ffffff', fontWeight: 'bold' }}>Triya Nath</span> &nbsp; | &nbsp; Simulation: <span style={{ color: '#fb923c', fontWeight: 'bold' }}>{displaySyllabus}</span>
-            </div>
+    <div className="min-h-screen bg-neutral-950 text-neutral-50 flex flex-col p-4 sm:p-6">
+       {/* PDF TEMPLATE */}
+       <div className="absolute left-[-9999px] top-0 pointer-events-none">
+        <div id="pdf-template" className="w-[800px] p-16" style={{ backgroundColor: '#0a0a0a', color: '#fff', fontFamily: 'sans-serif' }}>
+          <div className="text-center border-b border-orange-500 pb-12 mb-12">
+            <h1 style={{ color: '#f97316', fontSize: '60px', fontWeight: '900', margin: 0 }}>EDUORACLE AI</h1>
+            <h2 style={{ fontSize: '24px', letterSpacing: '8px', color: '#fff', margin: '10px 0' }}>MISSION PERFORMANCE LOG</h2>
+            <p style={{ color: '#737373', fontSize: '14px' }}>Operative: <b>Triya Nath</b> | Domain: <b>{domainParam.toUpperCase()}</b></p>
           </div>
-
-          <div className="grid grid-cols-4 gap-4 mb-10">
-            <div className="p-5 rounded-2xl text-center" style={{ backgroundColor: '#121212', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <p className="text-[10px] uppercase font-black tracking-widest mb-1" style={{ color: '#737373' }}>Combat Rank</p>
-              <p className="text-xl font-black uppercase leading-tight" style={{ color: '#fb923c' }}>{getRank(finalScore)}</p>
-            </div>
-            <div className="p-5 rounded-2xl text-center" style={{ backgroundColor: '#121212', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <p className="text-[10px] uppercase font-black tracking-widest mb-1" style={{ color: '#737373' }}>Total XP</p>
-              <p className="text-3xl font-mono font-black">{finalScore}</p>
-            </div>
-            <div className="p-5 rounded-2xl text-center" style={{ backgroundColor: '#121212', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <p className="text-[10px] uppercase font-black tracking-widest mb-1" style={{ color: '#737373' }}>Accuracy</p>
-              <p className="text-3xl font-mono font-black" style={{ color: accuracy >= 50 ? '#34d399' : '#f87171' }}>{accuracy}%</p>
-            </div>
-            <div className="p-5 rounded-2xl text-center" style={{ backgroundColor: '#121212', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <p className="text-[10px] uppercase font-black tracking-widest mb-1" style={{ color: '#737373' }}>Time Left</p>
-              <p className="text-3xl font-mono font-black">{formatTime(timeLeft)}</p>
-            </div>
+          <div className="grid grid-cols-2 gap-8 mb-20" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+             <div style={{ backgroundColor: '#171717', padding: '40px', borderRadius: '30px', textAlign: 'center', border: '1px solid #262626' }}>
+                <p style={{ color: '#737373', textTransform: 'uppercase', fontWeight: 'bold', fontSize: '12px' }}>Total Score</p>
+                <h2 style={{ fontSize: '48px', color: '#f97316', margin: 0 }}>{score + timeLeft}</h2>
+             </div>
+             <div style={{ backgroundColor: '#171717', padding: '40px', borderRadius: '30px', textAlign: 'center', border: '1px solid #262626' }}>
+                <p style={{ color: '#737373', textTransform: 'uppercase', fontWeight: 'bold', fontSize: '12px' }}>Accuracy</p>
+                <h2 style={{ fontSize: '48px', color: '#10b981', margin: 0 }}>{Math.round((questionResults.filter(Boolean).length / 10) * 100)}%</h2>
+             </div>
           </div>
-
-          <div className="space-y-4">
-            <h3 className="text-lg font-black uppercase tracking-widest pb-3 mb-6 flex items-center gap-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-              <FileText color="#f97316" size={20} /> Node Telemetry Logs
-            </h3>
-            {questions.map((q, idx) => {
-              const isCorrect = userAnswers[idx] === q.correctAnswer;
-              return (
-                <div key={idx} className="p-5 rounded-2xl" style={{ backgroundColor: isCorrect ? 'rgba(2, 44, 34, 0.4)' : 'rgba(69, 10, 10, 0.4)', border: `1px solid ${isCorrect ? 'rgba(6, 78, 59, 0.8)' : 'rgba(127, 29, 29, 0.8)'}` }}>
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="text-xs font-black uppercase tracking-widest" style={{ color: '#a3a3a3' }}>Node {idx + 1} <span style={{ color: '#525252' }}>•</span> {q.difficulty}</span>
-                    <span className="text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full" style={{ backgroundColor: isCorrect ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', color: isCorrect ? '#10b981' : '#ef4444' }}>{isCorrect ? 'SUCCESS' : 'FAILURE'}</span>
-                  </div>
-                  <p className="text-base font-bold mb-4 leading-relaxed" style={{ color: '#e5e5e5' }}>{q.question}</p>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 rounded-xl" style={{ backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                      <p className="text-[9px] uppercase font-black tracking-widest mb-1" style={{ color: '#737373' }}>Your Input</p>
-                      <p className="text-sm font-bold" style={{ color: isCorrect ? '#34d399' : '#f87171' }}>{q.options[userAnswers[idx] ?? 0] || "SKIPPED"}</p>
-                    </div>
-                    {!isCorrect && (
-                      <div className="p-3 rounded-xl" style={{ backgroundColor: 'rgba(2, 44, 34, 0.3)', border: '1px solid rgba(6, 78, 59, 0.5)' }}>
-                        <p className="text-[9px] uppercase font-black tracking-widest mb-1" style={{ color: '#059669' }}>Correct Protocol</p>
-                        <p className="text-sm font-bold" style={{ color: '#34d399' }}>{q.options[q.correctAnswer]}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-
-          <div className="mt-16 pt-8 text-center flex flex-col items-center justify-center" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-             <div className="flex items-center gap-2 mb-2"><div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#f97316' }}></div><p className="text-[10px] tracking-[0.2em] uppercase font-bold" style={{ color: '#a3a3a3' }}>End of Transmission</p></div>
-             <p className="text-lg tracking-widest uppercase font-black mt-2" style={{ color: '#ea580c' }}>Globizhub India Pvt. Ltd.</p>
-             <p className="text-[9px] mt-2 font-mono" style={{ color: '#525252' }}>DOCUMENT ID: {Math.random().toString(36).substr(2, 9).toUpperCase()} - AUTHORIZED EYES ONLY</p>
+          <div style={{ textAlign: 'center', marginTop: '100px', borderTop: '1px solid #262626', paddingTop: '40px' }}>
+             <p style={{ fontSize: '20px', fontWeight: '900', color: '#ea580c', margin: 0 }}>GLOBIZHUB INDIA PVT. LTD.</p>
           </div>
         </div>
       </div>
-      {/* 🚨 END HIDDEN TEMPLATE 🚨 */}
-
 
       <AnimatePresence>
-        {showLogs && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-neutral-950/95 backdrop-blur-md p-4 sm:p-8 flex flex-col">
-            <div className="max-w-2xl w-full mx-auto flex-1 flex flex-col">
-              <header className="flex items-center justify-between mb-8"><button onClick={() => setShowLogs(false)} className="flex items-center gap-2 text-neutral-400 hover:text-white"><ChevronLeft size={20} /> Back</button><h2 className="text-xl font-bold flex items-center gap-2 text-white"><FileText className="text-orange-500" /> Mission Telemetry</h2></header>
-              <div className="flex-1 overflow-y-auto space-y-4 pr-2">
-                {questions.map((q, idx) => {
-                  const isCorrect = userAnswers[idx] === q.correctAnswer;
-                  return (
-                    <div key={q.id} className="p-5 rounded-2xl bg-white/5 border border-white/10">
-                      <div className="flex items-center justify-between mb-2"><span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Node {idx + 1} • {q.difficulty}</span>{isCorrect ? <span className="text-emerald-500 text-xs font-bold">SUCCESS</span> : <span className="text-red-500 text-xs font-bold">FAILURE</span>}</div>
-                      <h4 className="font-medium text-neutral-200 mb-4">{q.question}</h4>
-                      <div className="space-y-2">
-                        <div className={`p-3 rounded-lg text-sm border ${isCorrect ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>{q.options[userAnswers[idx] ?? 0] || "Skipped"}</div>
-                        {!isCorrect && <div className="p-3 rounded-lg text-sm bg-white/5 border border-white/10 text-neutral-300 opacity-60">Correct Protocol: {q.options[q.correctAnswer]}</div>}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </motion.div>
-        )}
-
         {showCertificate && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[120] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4">
-             <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} className="max-w-md w-full bg-neutral-900 border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl">
-                <div className="relative p-8 text-center space-y-6">
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-orange-500/20 blur-[80px] rounded-full" />
-                  <div className="mx-auto w-24 h-24 bg-gradient-to-tr from-orange-600 to-amber-400 rounded-2xl flex items-center justify-center shadow-[0_0_50px_rgba(245,158,11,0.3)] rotate-12 mb-4"><ShieldCheck size={48} className="text-white -rotate-12" /></div>
-                  <div className="space-y-2"><h3 className="text-xs font-black uppercase tracking-[0.3em] text-orange-500">Verified Achievement</h3><h2 className="text-3xl font-black text-white italic">MISSION DEBRIEF</h2></div>
-                  <div className="py-6 border-y border-white/5 space-y-4">
-                    <div><p className="text-[10px] text-neutral-500 uppercase font-bold tracking-widest">Candidate Rank</p><p className="text-2xl font-bold text-white uppercase tracking-tighter">{getRank(finalScore)}</p></div>
-                    <div className="flex justify-center gap-12">
-                       <div><p className="text-[10px] text-neutral-500 uppercase font-bold">XP Score</p><p className="text-xl font-mono text-orange-400">{finalScore}</p></div>
-                       <div><p className="text-[10px] text-neutral-500 uppercase font-bold">Accuracy</p><p className={`text-xl font-mono ${accuracy >= 50 ? 'text-emerald-400' : 'text-red-400'}`}>{accuracy}%</p></div>
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <button onClick={handleDownloadPDF} disabled={isDownloading} className={`flex-1 py-4 bg-white text-black rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all ${isDownloading ? 'opacity-80 cursor-wait' : 'hover:bg-neutral-200'}`}>
-                      {isDownloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} {isDownloading ? 'COMPILING...' : 'SAVE LOGS'}
-                    </button>
-                    <button onClick={handleShare} className="flex-1 py-4 bg-[#0A66C2] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-[#004182] transition-all cursor-pointer"><Linkedin size={14}/> SHARE</button>
-                  </div>
-                  <button onClick={() => setShowCertificate(false)} className="text-[10px] text-neutral-600 font-bold uppercase tracking-widest hover:text-neutral-400 transition-colors">Dismiss</button>
+          <div className="fixed inset-0 z-[120] bg-black/95 flex items-center justify-center p-4 backdrop-blur-3xl">
+             <div className="max-w-md w-full bg-neutral-900 border border-white/10 rounded-[3rem] p-10 text-center space-y-8 shadow-2xl">
+                <ShieldCheck size={80} className="text-orange-500 mx-auto" />
+                <h2 className="text-4xl font-black text-white italic">MISSION COMPLETE</h2>
+                <div className="flex gap-4">
+                  <button onClick={handlePDF} disabled={isDownloading} className="flex-1 py-5 bg-white text-black rounded-2xl font-black text-xs flex items-center justify-center gap-2">{isDownloading ? <Loader2 className="animate-spin" /> : <Download size={16}/>} SAVE PDF</button>
+                  <button onClick={() => window.open('https://linkedin.com')} className="flex-1 py-5 bg-[#0A66C2] text-white rounded-2xl font-black text-xs flex items-center justify-center gap-2"><Linkedin size={16}/> SHARE</button>
                 </div>
-             </motion.div>
-          </motion.div>
+                <button onClick={() => setShowCertificate(false)} className="text-[10px] text-neutral-600 font-black">DISMISS INTEL</button>
+             </div>
+          </div>
         )}
       </AnimatePresence>
 
-      <header className="flex flex-col w-full max-w-3xl mx-auto mb-6 z-10">
-        <div className="flex items-center justify-between mb-6">
-          <button onClick={() => router.push("/battle")} className="p-2 text-neutral-400 hover:text-white bg-white/5 rounded-full border border-white/10 transition-colors"><ArrowLeft size={20} /></button>
-          <div className={`flex items-center gap-3 px-6 py-2 rounded-xl border transition-all ${timeLeft < 60 ? "bg-red-500/20 border-red-500/50 text-red-400 animate-pulse" : "bg-white/5 border-white/10 text-orange-400"}`}>
-            <Timer size={20} /><span className="font-mono text-xl font-bold">{formatTime(timeLeft)}</span>
-          </div>
-          <div className="flex items-center gap-3">
-             {streak >= 3 && <div className="text-rose-500 font-bold bg-rose-500/10 px-3 py-1 rounded-full border border-rose-500/30 flex items-center gap-1 animate-bounce"><Flame size={14}/> {streak}x</div>}
-             <div className="flex items-center gap-2 text-orange-400 font-bold bg-white/5 px-4 py-1.5 rounded-full border border-orange-500/20"><Trophy size={20}/><span>{score}</span></div>
-          </div>
+      <header className="max-w-3xl w-full mx-auto mb-10">
+        <div className="flex justify-between items-center mb-8">
+           <button onClick={() => router.push("/battle")} className="p-3 bg-white/5 rounded-full"><ArrowLeft/></button>
+           <div className="bg-white/5 px-8 py-3 rounded-2xl border border-white/10 text-orange-400 font-mono font-black text-2xl">{Math.floor(timeLeft/60)}:{String(timeLeft%60).padStart(2,'0')}</div>
+           <div className="bg-white/5 px-6 py-3 rounded-2xl border border-orange-500/20 text-orange-400 font-black flex gap-3 text-lg"><Trophy/> {score}</div>
         </div>
-        <div className="flex gap-2 w-full h-1.5">
-          {questions.map((_, idx) => (
-            <div key={idx} className={`flex-1 rounded-full transition-all duration-500 ${idx < questionResults.length ? (questionResults[idx] ? "bg-emerald-500 shadow-[0_0_8px_emerald]" : "bg-red-500 shadow-[0_0_8px_red]") : (idx === currentQIndex ? "bg-orange-500 animate-pulse" : "bg-white/10")}`} />
-          ))}
+        <div className="flex gap-1.5 h-2">
+           {questions.map((_, i) => <div key={i} className={`flex-1 rounded-full transition-all duration-500 ${i < questionResults.length ? (questionResults[i] ? 'bg-emerald-500' : 'bg-red-500') : (i === currentQIndex ? 'bg-orange-500 animate-pulse' : 'bg-white/10')}`} />)}
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center w-full max-w-3xl mx-auto z-10">
-        <AnimatePresence mode="wait">
-          {!isFinished && currentQuestion ? (
-            <motion.div key={currentQIndex} initial={{ opacity: 0, x: 20 }} animate={isWrongShake ? { x: [-10, 10, -10, 10, 0] } : { opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="w-full space-y-6">
-              <div className={`p-6 md:p-8 rounded-2xl border backdrop-blur-sm transition-all ${isWrongShake ? "bg-red-500/10 border-red-500/50" : "bg-white/5 border-white/10"}`}>
-                <div className="flex items-center justify-between mb-4 text-[10px] font-black uppercase tracking-widest"><span className="text-neutral-500">Node {currentQIndex + 1} of {questions.length}</span><div className="flex items-center gap-2"><span className={`px-2 py-0.5 rounded-md border ${currentQuestion.difficulty === 'HARD' ? 'bg-red-500/10 border-red-500/30 text-red-500' : currentQuestion.difficulty === 'MEDIUM' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-500' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500'}`}>{currentQuestion.difficulty}</span><span className="bg-orange-500/10 border border-orange-500/30 px-2 py-0.5 rounded-md text-orange-500">{displaySyllabus}</span></div></div>
-                <h2 className="text-xl md:text-2xl font-semibold leading-relaxed">{currentQuestion.question}</h2>
-              </div>
-              <div className="grid gap-3">
-                {currentQuestion.options.map((option: string, index: number) => {
-                  const isHidden = hiddenOptions.includes(index);
-                  if (isHidden) return <button key={index} disabled className="p-4 rounded-xl border border-transparent opacity-10 cursor-not-allowed text-left text-neutral-600 line-through">{option}</button>;
-                  let stateClass = "bg-white/5 border-white/10 hover:bg-white/10 text-neutral-300"; let Icon = null;
-                  if (isAnswered) {
-                    if (index === currentQuestion.correctAnswer) { stateClass = "bg-emerald-500/20 border-emerald-500/50 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]"; Icon = <CheckCircle2 size={20}/>; }
-                    else if (index === selectedAnswer) { stateClass = "bg-red-500/20 border-red-500/50 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.2)]"; Icon = <XCircle size={20}/>; }
-                    else { stateClass = "bg-white/5 border-white/10 opacity-50"; }
-                  }
-                  return <button key={index} onClick={() => handleAnswer(index)} disabled={isAnswered} className={`relative flex items-center justify-between p-4 rounded-xl border transition-all text-left ${stateClass}`}><span>{option}</span>{Icon && <span className="absolute right-4">{Icon}</span>}</button>;
-                })}
-              </div>
-              <div className="flex justify-center pt-4 border-t border-white/10"><button onClick={handleGarbageCollect} disabled={isGarbageCollectUsed || isAnswered} className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold transition-all ${isGarbageCollectUsed || isAnswered ? "bg-neutral-800 text-neutral-600" : "bg-purple-600/20 text-purple-400 hover:bg-purple-600/30 border border-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.2)]"}`}><Trash2 size={16}/> Garbage Collect (50/50)</button></div>
-            </motion.div>
-          ) : (
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center space-y-6 p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm w-full">
-              <div className="mx-auto w-20 h-20 bg-orange-500/20 rounded-full flex items-center justify-center border border-orange-500/30 shadow-[0_0_30px_orange]"><Trophy size={40} className="text-orange-400" /></div>
-              <h2 className="text-3xl font-black italic uppercase tracking-tighter">Mission Success!</h2>
-              <div className="bg-black/40 border border-white/10 rounded-2xl p-6 w-full max-w-sm mx-auto space-y-4">
-                <div className="flex justify-between items-center text-neutral-300"><span className="font-bold uppercase text-[10px] tracking-widest text-neutral-500">Combat Rank</span><span className="text-orange-500 font-bold">{getRank(finalScore)}</span></div>
-                <div className="flex justify-between items-center text-neutral-300"><span>Base Score</span><span className="font-mono font-bold text-2xl">{score}</span></div>
-                <div className="flex justify-between items-center text-emerald-400"><span>Speed Bonus</span><span className="font-mono font-bold text-2xl">+{timeLeft > 0 ? timeLeft : 0}</span></div>
-                <div className="h-px bg-white/10 w-full my-2" />
-                <div className="flex justify-between items-end"><span className="font-bold text-neutral-400 uppercase tracking-widest text-sm mb-1">Total XP</span><span className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-orange-400 to-amber-500">{finalScore}</span></div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4">
-                <button onClick={() => setShowCertificate(true)} className="py-4 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 rounded-xl font-bold border border-orange-500/20 flex items-center justify-center gap-2 transition-all"><Medal size={18}/> GET PRESTIGE CARD</button>
-                <button onClick={() => setShowLogs(true)} className="py-4 bg-white/5 hover:bg-white/10 text-white rounded-xl font-bold border border-white/10 flex items-center justify-center gap-2 transition-all"><FileText size={18}/> REVIEW DATA</button>
-                <button onClick={() => router.push("/battle")} className="py-4 bg-white text-black rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95"><ChevronLeft size={18}/> COMMAND CENTER</button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+      <main className="flex-1 flex flex-col items-center justify-center max-w-3xl w-full mx-auto">
+        {!isFinished ? (
+          <motion.div key={currentQIndex} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="w-full space-y-8">
+             <div className="p-10 rounded-[2.5rem] bg-white/[0.03] border border-white/10 text-center relative overflow-hidden">
+                <span className="text-[10px] text-neutral-500 font-black uppercase tracking-[0.3em]">Node {currentQIndex+1} / 10</span>
+                <h2 className="text-2xl sm:text-3xl font-bold mt-6 text-white">{questions[currentQIndex]?.question}</h2>
+             </div>
+             <div className="grid gap-3">
+                {questions[currentQIndex]?.options.map((opt: any, i: number) => (
+                  <button key={i} onClick={() => handleAnswer(i)} disabled={isAnswered} className={`p-6 rounded-2xl border text-left font-bold transition-all ${isAnswered ? (i === questions[currentQIndex].correctAnswer ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : (i === selectedAnswer ? 'bg-red-500/20 border-red-500 text-red-400' : 'bg-white/[0.01] border-white/5 opacity-40')) : 'bg-white/[0.02] border-white/10 hover:border-orange-500/50'}`}>
+                    <span className="mr-4 text-neutral-600 font-mono">{String.fromCharCode(65+i)}.</span> {opt}
+                  </button>
+                ))}
+             </div>
+          </motion.div>
+        ) : (
+          <div className="w-full text-center space-y-10 p-12 bg-white/[0.02] border border-white/10 rounded-[4rem]">
+             <Trophy size={60} className="text-orange-400 mx-auto" />
+             <h2 className="text-5xl font-black italic tracking-tighter uppercase">MISSION SUCCESS</h2>
+             <div className="grid grid-cols-2 gap-4">
+                <div className="bg-black/40 p-6 rounded-3xl border border-white/5"><p className="text-[10px] text-neutral-500 uppercase font-black">Score</p><p className="text-3xl font-mono font-black text-orange-400">{score + timeLeft}</p></div>
+                <div className="bg-black/40 p-6 rounded-3xl border border-white/5"><p className="text-[10px] text-neutral-500 uppercase font-black">Time</p><p className="text-3xl font-mono font-black text-emerald-400">+{timeLeft}</p></div>
+             </div>
+             <button onClick={() => setShowCertificate(true)} className="w-full py-6 bg-orange-600 text-white rounded-2xl font-black uppercase shadow-xl transition-all">Claim Prestige</button>
+          </div>
+        )}
       </main>
     </div>
   );
 }
 
-// 🚨 DEFAULT EXPORT BOUNDARY 🚨
-export default function BattlePage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center">
-        <Loader2 className="w-12 h-12 text-orange-500 animate-spin mb-4" />
-      </div>
-    }>
-      <BattleEngine />
-    </Suspense>
-  );
+export default function BattleEnginePage() {
+  return (<Suspense fallback={<div className="bg-neutral-950 min-h-screen"/>}><BattleEngine /></Suspense>);
 }
